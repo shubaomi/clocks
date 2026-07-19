@@ -1,4 +1,4 @@
-# Hongrun Clocks design
+# Cultural Clocks design
 
 ## Decision
 

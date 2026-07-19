@@ -1,4 +1,4 @@
-# Hongrun Clocks maintenance rules
+# Cultural Clocks maintenance rules
 
 ## Product shape
 

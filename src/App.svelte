@@ -34,7 +34,7 @@
 </script>
 
 <svelte:head>
-  <title>{activeClock ? `${activeClock.titleZh} — Hongrun Clocks` : "Hongrun Clocks — 时间造物集"}</title>
+  <title>{activeClock ? `${activeClock.titleZh} — 时间造物集` : "时间造物集 — Cultural Clocks"}</title>
   <meta
     name="description"
     content={activeClock
@@ -56,9 +56,9 @@
 
 <footer class="site-footer">
   <div>
-    <strong>HONGRUN CLOCKS</strong>
+    <strong>CULTURAL CLOCKS</strong>
     <span>时间造物集</span>
   </div>
   <p>Designed around culture, rhythm and the many shapes of time.</p>
-  <span>© {time.year} HONGRUN</span>
+  <span>© {time.year} 时间造物集</span>
 </footer>

@@ -5,10 +5,10 @@
 </script>
 
 <header class="site-header">
-  <a class="brand" href="/" aria-label="Hongrun Clocks 时间造物集首页">
+  <a class="brand" href="/" aria-label="时间造物集首页">
     <span class="brand-mark" aria-hidden="true">时</span>
     <span class="brand-copy">
-      <strong>HONGRUN CLOCKS</strong>
+      <strong>CULTURAL CLOCKS</strong>
       <small>时间造物集</small>
     </span>
   </a>

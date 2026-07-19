@@ -51,7 +51,7 @@
       </div>
 
       <div class="stage-label stage-label-bottom" aria-hidden="true">
-        <span>HONGRUN CLOCKS</span>
+        <span>CULTURAL CLOCKS</span>
         <span>LOCAL TIME</span>
       </div>
     </div>
