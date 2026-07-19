@@ -1,0 +1,51 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  getDoubleHourState,
+  getZodiacState,
+} from "../src/lib/time-periods.js";
+
+const boundaries = [
+  [23, 0, 0],
+  [1, 0, 1],
+  [3, 0, 2],
+  [5, 0, 3],
+  [7, 0, 4],
+  [9, 0, 5],
+  [11, 0, 6],
+  [13, 0, 7],
+  [15, 0, 8],
+  [17, 0, 9],
+  [19, 0, 10],
+  [21, 0, 11],
+];
+
+test("double-hour and zodiac boundaries map to all twelve periods", () => {
+  for (const [hour, minute, expectedIndex] of boundaries) {
+    assert.equal(getDoubleHourState(hour, minute).index, expectedIndex);
+    assert.equal(getZodiacState(hour, minute).index, expectedIndex);
+  }
+});
+
+test("the Zi period crosses midnight without changing index", () => {
+  assert.equal(getDoubleHourState(23, 59, 59).index, 0);
+  assert.equal(getDoubleHourState(0, 59, 59).index, 0);
+  assert.equal(getZodiacState(23, 59, 59).index, 0);
+  assert.equal(getZodiacState(0, 59, 59).index, 0);
+});
+
+test("period progress remains bounded", () => {
+  const samples = [
+    [0, 0, 0, 0],
+    [6, 29, 30, 500],
+    [12, 45, 12, 250],
+    [23, 59, 59, 999],
+  ];
+
+  for (const sample of samples) {
+    const doubleHour = getDoubleHourState(...sample);
+    const zodiac = getZodiacState(...sample);
+    assert.ok(doubleHour.progress >= 0 && doubleHour.progress < 1);
+    assert.ok(zodiac.progress >= 0 && zodiac.progress < 1);
+  }
+});

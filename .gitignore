@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.vite/
+
+# Local deployment and infrastructure files
+deploy.sh
+clocks.conf.example
+
+# Local secrets and certificates
+.env
+.env.*
+*.key
+*.pem
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
