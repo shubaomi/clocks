@@ -5,6 +5,7 @@ import { clocks } from "../src/lib/catalog.js";
 const distRoot = resolve("dist");
 const expectedFiles = [
   resolve(distRoot, "index.html"),
+  resolve(distRoot, "favicon.svg"),
   ...clocks.map(({ slug }) => resolve(distRoot, slug, "index.html")),
 ];
 
@@ -17,6 +18,10 @@ if (!index.startsWith("<!doctype html>")) {
 
 if (!index.includes("/assets/")) {
   throw new Error("dist/index.html does not reference the built asset bundle");
+}
+
+if (!index.includes('href="/favicon.svg"')) {
+  throw new Error("dist/index.html does not reference the site favicon");
 }
 
 console.log(`Verified homepage and ${clocks.length} physical detail routes.`);
