@@ -4,6 +4,7 @@ import {
   getDoubleHourState,
   getZodiacState,
 } from "../src/lib/time-periods.js";
+import { createClockTime } from "../src/lib/clock-time.js";
 
 const boundaries = [
   [23, 0, 0],
@@ -48,4 +49,9 @@ test("period progress remains bounded", () => {
     assert.ok(doubleHour.progress >= 0 && doubleHour.progress < 1);
     assert.ok(zodiac.progress >= 0 && zodiac.progress < 1);
   }
+});
+
+test("day-of-year uses calendar dates and is not shifted by daylight saving time", () => {
+  assert.equal(createClockTime(new Date(2026, 6, 22, 12)).dayOfYear, 203);
+  assert.equal(createClockTime(new Date(2024, 11, 31, 12)).dayOfYear, 366);
 });

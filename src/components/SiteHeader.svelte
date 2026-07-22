@@ -1,5 +1,5 @@
 <script>
-  import { clocks, routeFor } from "../lib/catalog.js";
+  import { clocks } from "../lib/catalog.js";
 
   let { time, activeSlug = "" } = $props();
 </script>
@@ -13,13 +13,9 @@
     </span>
   </a>
 
-  <nav aria-label="时钟作品">
-    {#each clocks as clock}
-      <a
-        href={routeFor(clock)}
-        aria-current={activeSlug === clock.slug ? "page" : undefined}
-      >{clock.titleZh}</a>
-    {/each}
+  <nav aria-label="网站导航">
+    <a href="/#collection" aria-current={!activeSlug ? "page" : undefined}>馆藏 <span>{String(clocks.length).padStart(2,"0")}</span></a>
+    {#if activeSlug}<a href="/">随机一座</a>{/if}
   </nav>
 
   <div class="now" aria-label={`当前时间 ${time.hh}:${time.mm}:${time.ss}`}>
@@ -94,6 +90,8 @@
     font-size: 13px;
     text-decoration: none;
   }
+
+  nav a span { color: var(--cinnabar); font: 9px var(--mono); }
 
   nav a::after {
     position: absolute;

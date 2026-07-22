@@ -66,7 +66,8 @@ a {
   font: inherit;
 }
 
-a:focus-visible {
+a:focus-visible,
+button:focus-visible {
   outline: 2px solid var(--cinnabar);
   outline-offset: 4px;
 }

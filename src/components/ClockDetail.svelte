@@ -11,7 +11,7 @@
     <span>{clock.titleZh}</span>
   </div>
 
-  <section class="detail-layout" class:portrait={clock.aspect === "portrait"} class:square={clock.aspect === "square"}>
+  <section class="detail-layout" class:portrait={clock.aspect === "portrait"} class:square={clock.aspect === "square"} class:landscape={clock.aspect === "landscape"}>
     <div class="detail-copy">
       <div class="detail-number" aria-hidden="true">
         <span>{clock.number}</span>
@@ -46,12 +46,12 @@
         <span>{time.hh}:{time.mm}:{time.ss}</span>
       </div>
 
-      <div class="detail-frame">
+      <div class="detail-frame" style={`aspect-ratio:${clock.canvas.width}/${clock.canvas.height}`}>
         <ClockRenderer slug={clock.slug} {time} fit />
       </div>
 
       <div class="stage-label stage-label-bottom" aria-hidden="true">
-        <span>CULTURAL CLOCKS</span>
+        <span>TIME IN CULTURAL FORMS</span>
         <span>LOCAL TIME</span>
       </div>
     </div>
@@ -254,6 +254,11 @@
     aspect-ratio: 1;
   }
 
+  .landscape .detail-frame {
+    width: min(100%, 920px);
+    aspect-ratio: 3 / 2;
+  }
+
   .stage-label {
     position: absolute;
     z-index: 3;
@@ -324,6 +329,8 @@
     .square .detail-stage {
       min-height: min(105vw, 760px);
     }
+
+    .landscape .detail-stage { min-height: min(82vw, 680px); }
   }
 
   @media (max-width: 520px) {
@@ -354,6 +361,8 @@
       padding: 38px 18px;
     }
 
+    .landscape .detail-stage { min-height: 72vw; padding: 42px 18px; }
+
     .portrait .detail-frame {
       width: 100%;
     }
@@ -361,6 +370,8 @@
     .square .detail-frame {
       width: 100%;
     }
+
+    .landscape .detail-frame { width: 100%; }
 
     .stage-label {
       right: 25px;

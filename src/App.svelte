@@ -34,12 +34,12 @@
 </script>
 
 <svelte:head>
-  <title>{activeClock ? `${activeClock.titleZh} — 时间造物集` : "时间造物集 — Cultural Clocks"}</title>
+  <title>{activeClock ? `${activeClock.titleZh} — 时间造物集` : "时间造物集 — 十二种时间形状"}</title>
   <meta
     name="description"
     content={activeClock
       ? activeClock.description
-      : "以当代数字设计重新观看中国传统时间的文化时钟作品集。"}
+      : "时间造物集，以当代数字设计呈现不同文化理解、记录与想象时间的方式。"}
   />
 </svelte:head>
 
@@ -56,9 +56,9 @@
 
 <footer class="site-footer">
   <div>
-    <strong>CULTURAL CLOCKS</strong>
+    <strong>FORMS OF TIME</strong>
     <span>时间造物集</span>
   </div>
-  <p>Designed around culture, rhythm and the many shapes of time.</p>
+  <p>One shared moment, shaped by culture, rhythm and imagination.</p>
   <span>© {time.year} 时间造物集</span>
 </footer>

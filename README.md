@@ -1,6 +1,8 @@
 # Cultural Clocks — 时间造物集
 
-A static collection of cultural clock designs. The gallery and every detail page use the visitor's local browser time without a backend, database, analytics service, or external runtime asset.
+A static collection of twelve cultural clock designs. The living gallery recommends one work on each visit, while every detail page uses the visitor's local browser time without a backend, database, analytics service, or external runtime asset.
+
+Historical sources, contemporary mappings, calculations, and limitations are documented in [`docs/research/chinese-timekeeping.md`](docs/research/chinese-timekeeping.md).
 
 ## Development
 
@@ -23,8 +25,7 @@ npm run check
 dist/
 ├── index.html
 ├── assets/
-├── twelve-shichen/index.html
-└── zodiac-seal-almanac/index.html
+└── <clock-slug>/index.html  # one physical route for each of 12 clocks
 ```
 
 Each new catalog entry receives its own physical route during the build. The production server only needs one generic static-site configuration.
