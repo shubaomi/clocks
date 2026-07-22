@@ -9,6 +9,7 @@ import {
   getMansionState,
   getSexagenaryState,
   getSolarTermCompressionState,
+  getSundialState,
   getZodiacSkyState,
   heavenlyStems,
   sexagenaryPairs,
@@ -87,5 +88,11 @@ test("sky systems expose a complete daily rotation tied to civil time", () => {
   for (const [hour, expectedRotation] of [[0, 0], [6, 90], [12, 180], [18, 270]]) {
     assert.equal(getMansionState(at(hour)).rotation, expectedRotation);
     assert.equal(getZodiacSkyState(at(hour)).skyRotation, expectedRotation);
+  }
+});
+
+test("sundial shadow points to the matching 24-hour dial labels", () => {
+  for (const [hour, expectedAngle] of [[0, -180], [6, -90], [12, 0], [18, 90]]) {
+    assert.equal(getSundialState(at(hour)).shadowAngle, expectedAngle);
   }
 });

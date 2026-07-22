@@ -171,7 +171,7 @@ export function getSundialState(time) {
   const dayAngle = ((time.dayOfYear || 1) - 172) / 365.2422 * TAU;
   const summerFactor = (Math.cos(dayAngle) + 1) / 2;
   return {
-    shadowAngle: elapsedDay(time) / 24 * 360 - 90,
+    shadowAngle: elapsedDay(time) / 24 * 360 - 180,
     shadowLength: 0.36 + (1 - summerFactor) * 0.48,
     seasonProgress: normalize(((time.dayOfYear || 1) - 1) / 365.2422, 1),
   };
