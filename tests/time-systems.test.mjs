@@ -6,8 +6,10 @@ import {
   getActualSolarTerm,
   getClepsydraState,
   getHexagramState,
+  getMansionState,
   getSexagenaryState,
   getSolarTermCompressionState,
+  getZodiacSkyState,
   heavenlyStems,
   sexagenaryPairs,
   solarTerms,
@@ -79,4 +81,11 @@ test("all compressed systems wrap cleanly at midnight", () => {
   assert.equal(getSolarTermCompressionState(at(0)).termIndex, 0);
   assert.equal(getHexagramState(at(23, 59, 59, 999)).index, 63);
   assert.equal(getHexagramState(at(0)).index, 0);
+});
+
+test("sky systems expose a complete daily rotation tied to civil time", () => {
+  for (const [hour, expectedRotation] of [[0, 0], [6, 90], [12, 180], [18, 270]]) {
+    assert.equal(getMansionState(at(hour)).rotation, expectedRotation);
+    assert.equal(getZodiacSkyState(at(hour)).skyRotation, expectedRotation);
+  }
 });

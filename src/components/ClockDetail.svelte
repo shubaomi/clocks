@@ -1,7 +1,30 @@
 <script>
   import ClockRenderer from "./ClockRenderer.svelte";
+  import {
+    createClockTimeAtDaySecond,
+    formatDaySecond,
+  } from "../lib/clock-time.js";
 
   let { clock, time } = $props();
+  let exploring = $state(false);
+  let selectedSecond = $state(0);
+  let timelineSecond = $derived(
+    exploring
+      ? selectedSecond
+      : Math.min(86400, Math.floor(time.progress.day * 86400)),
+  );
+  let displayTime = $derived(
+    exploring ? createClockTimeAtDaySecond(time, selectedSecond) : time,
+  );
+
+  const chooseTime = (second) => {
+    selectedSecond = Number(second);
+    exploring = true;
+  };
+
+  const resetTime = () => {
+    exploring = false;
+  };
 </script>
 
 <main id="main" class="detail-page" data-theme={clock.theme}>
@@ -36,24 +59,60 @@
 
       <div class="local-note">
         <span class="pulse" aria-hidden="true"></span>
-        <span>正在读取你的本地时间 · {time.timezone.replaceAll("_", " ")}</span>
+        <span>{exploring ? "正在观察所选时刻" : "正在读取你的本地时间"} · {time.timezone.replaceAll("_", " ")}</span>
       </div>
     </div>
 
-    <div class="detail-stage">
-      <div class="stage-label stage-label-top" aria-hidden="true">
-        <span>LIVE EXHIBIT</span>
-        <span>{time.hh}:{time.mm}:{time.ss}</span>
+    <div class="exhibit-column">
+      <div class="detail-stage">
+        <div class="stage-label stage-label-top" aria-hidden="true">
+          <span>{exploring ? "TIME EXPLORATION" : "LIVE EXHIBIT"}</span>
+          <span>{formatDaySecond(timelineSecond)}</span>
+        </div>
+
+        <div class="detail-frame" style={`aspect-ratio:${clock.canvas.width}/${clock.canvas.height}`}>
+          <ClockRenderer slug={clock.slug} time={displayTime} fit />
+        </div>
+
+        <div class="stage-label stage-label-bottom" aria-hidden="true">
+          <span>TIME IN CULTURAL FORMS</span>
+          <span>{exploring ? "SELECTED TIME" : "LOCAL TIME"}</span>
+        </div>
       </div>
 
-      <div class="detail-frame" style={`aspect-ratio:${clock.canvas.width}/${clock.canvas.height}`}>
-        <ClockRenderer slug={clock.slug} {time} fit />
-      </div>
+      <section
+        class="time-explorer"
+        class:exploring
+        aria-labelledby="time-explorer-title"
+      >
+        <div class="explorer-heading">
+          <div>
+            <span id="time-explorer-title">一天时间轴 · TIME OF DAY</span>
+            <strong>{exploring ? "探索模式" : "实时时间"}</strong>
+          </div>
+          <output aria-live="polite">{formatDaySecond(timelineSecond)}</output>
+          <button type="button" onclick={resetTime} disabled={!exploring}>Reset · 回到现在</button>
+        </div>
 
-      <div class="stage-label stage-label-bottom" aria-hidden="true">
-        <span>TIME IN CULTURAL FORMS</span>
-        <span>LOCAL TIME</span>
-      </div>
+        <label for="time-of-day">拖动观察时钟在 0—24 时之间的完整变化</label>
+        <input
+          id="time-of-day"
+          type="range"
+          min="0"
+          max="86400"
+          step="1"
+          value={timelineSecond}
+          aria-label="观察一天中的时间"
+          aria-valuetext={formatDaySecond(timelineSecond)}
+          oninput={(event) => chooseTime(event.currentTarget.value)}
+        />
+
+        <div class="timeline-ticks" aria-label="快速选择时刻">
+          {#each [[0, "00"], [21600, "06"], [43200, "12"], [64800, "18"], [86400, "24"]] as tick}
+            <button type="button" onclick={() => chooseTime(tick[0])}>{tick[1]}</button>
+          {/each}
+        </div>
+      </section>
     </div>
   </section>
 
@@ -219,6 +278,10 @@
       linear-gradient(145deg, #d8cfb9, #eee8dc 48%, #cdbb9d);
   }
 
+  .exhibit-column {
+    min-width: 0;
+  }
+
   [data-theme="cinnabar"] .detail-stage {
     background:
       radial-gradient(circle at 22% 16%, rgb(255 255 255 / 62%), transparent 34%),
@@ -293,6 +356,144 @@
     color: var(--cinnabar);
   }
 
+  .time-explorer {
+    position: relative;
+    margin-top: 16px;
+    padding: 20px 22px 17px;
+    border: 1px solid var(--line-strong);
+    background: color-mix(in srgb, var(--paper) 88%, white);
+    box-shadow: 0 12px 36px rgb(58 41 20 / 8%);
+  }
+
+  .time-explorer::before {
+    position: absolute;
+    inset: 6px;
+    border: 1px solid rgb(67 46 22 / 7%);
+    content: "";
+    pointer-events: none;
+  }
+
+  .time-explorer.exploring {
+    border-color: color-mix(in srgb, var(--cinnabar) 55%, var(--line-strong));
+  }
+
+  .explorer-heading {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .explorer-heading > div {
+    display: grid;
+    gap: 5px;
+  }
+
+  .explorer-heading span,
+  .explorer-heading strong,
+  .time-explorer label,
+  .timeline-ticks,
+  .explorer-heading button {
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+  }
+
+  .explorer-heading span {
+    color: var(--ink-soft);
+    font-size: 11px;
+  }
+
+  .explorer-heading strong {
+    color: var(--jade);
+    font-size: 12px;
+  }
+
+  .exploring .explorer-heading strong {
+    color: var(--cinnabar);
+  }
+
+  .explorer-heading output {
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: clamp(24px, 2.4vw, 34px);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+  }
+
+  .explorer-heading button {
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid var(--cinnabar);
+    color: var(--cinnabar);
+    background: transparent;
+    cursor: pointer;
+    font-size: 10px;
+  }
+
+  .explorer-heading button:disabled {
+    border-color: var(--line-strong);
+    color: var(--ink-faint);
+    cursor: default;
+  }
+
+  .explorer-heading button:focus-visible,
+  .timeline-ticks button:focus-visible,
+  .time-explorer input:focus-visible {
+    outline: 2px solid var(--cinnabar);
+    outline-offset: 3px;
+  }
+
+  .time-explorer label {
+    position: relative;
+    z-index: 1;
+    display: block;
+    margin-top: 15px;
+    color: var(--ink-faint);
+    font-size: 10px;
+  }
+
+  .time-explorer input {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 28px;
+    margin: 8px 0 0;
+    accent-color: var(--cinnabar);
+    cursor: ew-resize;
+  }
+
+  .timeline-ticks {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    margin-top: -2px;
+  }
+
+  .timeline-ticks button {
+    min-height: 34px;
+    border: 0;
+    color: var(--ink-faint);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: 10px;
+  }
+
+  .timeline-ticks button:first-child {
+    text-align: left;
+  }
+
+  .timeline-ticks button:last-child {
+    text-align: right;
+  }
+
+  .timeline-ticks button:hover {
+    color: var(--cinnabar);
+  }
+
   @media (max-width: 1050px) {
     .detail-layout {
       grid-template-columns: minmax(240px, 0.62fr) minmax(430px, 1.38fr);
@@ -344,6 +545,8 @@
 
     h1 {
       font-size: 46px;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .lead {
@@ -384,6 +587,28 @@
 
     .stage-label-bottom {
       bottom: 26px;
+    }
+
+    .time-explorer {
+      padding: 17px 16px 13px;
+    }
+
+    .explorer-heading {
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+    }
+
+    .explorer-heading output {
+      font-size: 25px;
+    }
+
+    .explorer-heading button {
+      grid-column: 1 / -1;
+      width: 100%;
+    }
+
+    .time-explorer label {
+      line-height: 1.5;
     }
   }
 </style>

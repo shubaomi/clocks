@@ -3,6 +3,32 @@ const two = (value) => String(value).padStart(2, "0");
 const timezone =
   Intl.DateTimeFormat().resolvedOptions().timeZone || "Local Time";
 
+const clampDaySecond = (value) =>
+  Math.min(86400, Math.max(0, Math.round(Number(value) || 0)));
+
+export function formatDaySecond(value) {
+  const daySecond = clampDaySecond(value);
+  if (daySecond === 86400) return "24:00:00";
+
+  const hour = Math.floor(daySecond / 3600);
+  const minute = Math.floor((daySecond % 3600) / 60);
+  const second = daySecond % 60;
+  return `${two(hour)}:${two(minute)}:${two(second)}`;
+}
+
+export function createClockTimeAtDaySecond(source, value) {
+  const sourceDate = source instanceof Date
+    ? source
+    : new Date(source?.timestamp ?? source);
+  const date = new Date(
+    sourceDate.getFullYear(),
+    sourceDate.getMonth(),
+    sourceDate.getDate(),
+  );
+  date.setSeconds(clampDaySecond(value));
+  return createClockTime(date);
+}
+
 export function createClockTime(date = new Date()) {
   const hour = date.getHours();
   const minute = date.getMinutes();
