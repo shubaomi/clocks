@@ -278,7 +278,7 @@
   .atlas-head span {
     color: var(--shell-muted);
     font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
-    font-size: clamp(12px, 2cqw, 14px);
+    font-size: clamp(13px, 2.1cqw, 15px);
     font-weight: 650;
     letter-spacing: 0.1em;
   }
@@ -403,7 +403,7 @@
   .current-kicker span {
     color: color-mix(in srgb, var(--cinnabar-dark) 72%, transparent);
     font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
-    font-size: clamp(12px, 2cqw, 14px);
+    font-size: clamp(13px, 2.1cqw, 15px);
     font-weight: 700;
     letter-spacing: 0.11em;
   }
@@ -526,7 +526,7 @@
   }
 
   .progress-row {
-    font-size: clamp(12px, 2cqw, 14px);
+    font-size: clamp(13px, 2.1cqw, 15px);
   }
 
   .current-index {
@@ -541,7 +541,7 @@
   }
 
   .current-index small {
-    font-size: 0.55em;
+    font-size: 0.68em;
   }
 
   .atlas {
@@ -904,6 +904,32 @@
       min-height: 18px;
       padding-top: 5px;
     }
+  }
+
+  @media (max-width: 520px) {
+    .brand strong { font-size: 34px; }
+    .brand span,
+    .rule-note span,
+    .current-kicker span,
+    .atlas-head span,
+    .footer-rule { display: none; }
+    .rule-note strong { font-size: 25px; }
+    .digital { font-size: 44px; }
+    .second-seal { font-size: 24px; }
+    .current-kicker strong { font-size: 27px; }
+    .branch-tag { font-size: 25px; }
+    .animal-name { font-size: 25px; }
+    .range-row { font-size: 25px; }
+    .progress-row { font-size: 25px; }
+    .current-index { top: 42px; right: 10px; font-size: 28px; }
+    .current-index small { font-size: 0.9em; }
+    .branch-tag { top: 19%; }
+    .atlas-head strong { font-size: 31px; }
+    .completion-stamp { font-size: 25px; }
+    .seal-meta strong,
+    .seal-meta span { font-size: 25px; }
+    .footer { font-size: 25px; }
+    .footer-mark { font-size: 26px; }
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -6,6 +6,13 @@ const timezone =
 const clampDaySecond = (value) =>
   Math.min(86400, Math.max(0, Math.round(Number(value) || 0)));
 
+export function advanceDaySecond(value, elapsedMs, cycleDurationSeconds) {
+  const daySecond = Math.min(86400, Math.max(0, Number(value) || 0)) % 86400;
+  const elapsed = Math.max(0, Number(elapsedMs) || 0);
+  const durationMs = Math.max(1, Number(cycleDurationSeconds) || 1) * 1000;
+  return (daySecond + (elapsed / durationMs) * 86400) % 86400;
+}
+
 export function formatDaySecond(value) {
   const daySecond = clampDaySecond(value);
   if (daySecond === 86400) return "24:00:00";

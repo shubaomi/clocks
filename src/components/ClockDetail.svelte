@@ -1,13 +1,24 @@
 <script>
   import ClockRenderer from "./ClockRenderer.svelte";
   import {
+    advanceDaySecond,
     createClockTimeAtDaySecond,
     formatDaySecond,
   } from "../lib/clock-time.js";
 
+  const playbackSpeeds = [
+    { duration: 120, label: "慢", detail: "2 分钟" },
+    { duration: 60, label: "中", detail: "60 秒" },
+    { duration: 30, label: "快", detail: "30 秒" },
+  ];
+
   let { clock, time } = $props();
   let exploring = $state(false);
   let selectedSecond = $state(0);
+  let playing = $state(false);
+  let playbackStarted = $state(false);
+  let playbackDuration = $state(60);
+  let focusMode = $state(false);
   let timelineSecond = $derived(
     exploring
       ? selectedSecond
@@ -18,16 +29,67 @@
   );
 
   const chooseTime = (second) => {
+    playing = false;
+    playbackStarted = false;
     selectedSecond = Number(second);
     exploring = true;
   };
 
   const resetTime = () => {
+    playing = false;
+    playbackStarted = false;
     exploring = false;
   };
+
+  const togglePlayback = () => {
+    if (playing) {
+      playing = false;
+      return;
+    }
+
+    if (!playbackStarted) selectedSecond = 0;
+    exploring = true;
+    playbackStarted = true;
+    playing = true;
+    focusMode = true;
+  };
+
+  const handleKeydown = (event) => {
+    if (event.key === "Escape" && focusMode) focusMode = false;
+  };
+
+  $effect(() => {
+    const duration = playbackDuration;
+    if (!playing) return;
+
+    let frame;
+    let previous = performance.now();
+    const advance = (now) => {
+      if (now - previous >= 50) {
+        selectedSecond = advanceDaySecond(selectedSecond, now - previous, duration);
+        previous = now;
+      }
+      frame = requestAnimationFrame(advance);
+    };
+
+    frame = requestAnimationFrame(advance);
+    return () => cancelAnimationFrame(frame);
+  });
+
+  $effect(() => {
+    if (!focusMode) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  });
 </script>
 
-<main id="main" class="detail-page" data-theme={clock.theme}>
+<svelte:window onkeydown={handleKeydown} />
+
+<main id="main" class="detail-page" class:focusing={focusMode} data-theme={clock.theme}>
   <div class="breadcrumb">
     <a href="/">时间造物集</a>
     <span aria-hidden="true">/</span>
@@ -63,12 +125,25 @@
       </div>
     </div>
 
-    <div class="exhibit-column">
+    <div
+      class="exhibit-column"
+      class:focus-mode={focusMode}
+      role={focusMode ? "region" : undefined}
+      aria-label={focusMode ? `${clock.titleZh}一屏时间探索` : undefined}
+    >
       <div class="detail-stage">
         <div class="stage-label stage-label-top" aria-hidden="true">
-          <span>{exploring ? "TIME EXPLORATION" : "LIVE EXHIBIT"}</span>
+          <span>{playing ? "AUTO DAY LOOP" : exploring ? "TIME EXPLORATION" : "LIVE EXHIBIT"}</span>
           <span>{formatDaySecond(timelineSecond)}</span>
         </div>
+
+        <button
+          class="stage-focus"
+          data-testid="focus-toggle"
+          type="button"
+          onclick={() => focusMode = !focusMode}
+          aria-label={focusMode ? "退出一屏探索" : "进入一屏探索"}
+        >{focusMode ? "退出一屏" : "一屏探索"} <span aria-hidden="true">{focusMode ? "×" : "↗"}</span></button>
 
         <div class="detail-frame" style={`aspect-ratio:${clock.canvas.width}/${clock.canvas.height}`}>
           <ClockRenderer slug={clock.slug} time={displayTime} fit />
@@ -76,25 +151,29 @@
 
         <div class="stage-label stage-label-bottom" aria-hidden="true">
           <span>TIME IN CULTURAL FORMS</span>
-          <span>{exploring ? "SELECTED TIME" : "LOCAL TIME"}</span>
+          <span>{playing ? "LOOPING 00—24" : exploring ? "SELECTED TIME" : "LOCAL TIME"}</span>
         </div>
       </div>
 
       <section
         class="time-explorer"
         class:exploring
+        class:playing
+        data-testid="time-explorer"
         aria-labelledby="time-explorer-title"
       >
         <div class="explorer-heading">
           <div>
             <span id="time-explorer-title">一天时间轴 · TIME OF DAY</span>
-            <strong>{exploring ? "探索模式" : "实时时间"}</strong>
+            <strong>{playing ? "自动巡时" : exploring ? "探索模式" : "实时时间"}</strong>
           </div>
-          <output aria-live="polite">{formatDaySecond(timelineSecond)}</output>
-          <button type="button" onclick={resetTime} disabled={!exploring}>Reset · 回到现在</button>
+          <output>{formatDaySecond(timelineSecond)}</output>
+          <button class="reset-button" type="button" onclick={resetTime} disabled={!exploring}>
+            <span class="reset-full">Reset · 回到现在</span><span class="reset-compact">Reset</span>
+          </button>
         </div>
 
-        <label for="time-of-day">拖动观察时钟在 0—24 时之间的完整变化</label>
+        <label for="time-of-day">拖动观察，或让时间从 00:00 自动行至 24:00</label>
         <input
           id="time-of-day"
           type="range"
@@ -111,6 +190,32 @@
           {#each [[0, "00"], [21600, "06"], [43200, "12"], [64800, "18"], [86400, "24"]] as tick}
             <button type="button" onclick={() => chooseTime(tick[0])}>{tick[1]}</button>
           {/each}
+        </div>
+
+        <div class="playback-controls">
+          <button
+            class="play-toggle"
+            data-testid="play-toggle"
+            type="button"
+            aria-pressed={playing}
+            onclick={togglePlayback}
+          >
+            <span aria-hidden="true">{playing ? "Ⅱ" : "▶"}</span>
+            {playing ? "暂停巡时" : playbackStarted ? "继续巡时" : "从 00:00 自动巡时"}
+          </button>
+          <div class="speed-selector" aria-label="自动巡时速度">
+            <span>24 小时用时</span>
+            {#each playbackSpeeds as speed}
+              <button
+                type="button"
+                class:active={playbackDuration === speed.duration}
+                aria-pressed={playbackDuration === speed.duration}
+                aria-label={`${speed.label}速，完整一天用 ${speed.detail}`}
+                title={`完整一天用 ${speed.detail}`}
+                onclick={() => playbackDuration = speed.duration}
+              >{speed.label}<small>{speed.detail}</small></button>
+            {/each}
+          </div>
         </div>
       </section>
     </div>
@@ -282,6 +387,20 @@
     min-width: 0;
   }
 
+  .exhibit-column.focus-mode {
+    position: fixed;
+    z-index: 100;
+    inset: 0;
+    display: grid;
+    overflow: hidden;
+    padding: 12px;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 10px;
+    background:
+      radial-gradient(circle at 72% 12%, rgb(255 255 255 / 72%), transparent 34%),
+      linear-gradient(145deg, var(--paper-light), var(--paper) 62%, var(--paper-deep));
+  }
+
   [data-theme="cinnabar"] .detail-stage {
     background:
       radial-gradient(circle at 22% 16%, rgb(255 255 255 / 62%), transparent 34%),
@@ -307,6 +426,19 @@
       0 0 0 1px rgb(65 43 19 / 16%);
   }
 
+  .focus-mode .detail-stage {
+    height: auto;
+    min-height: 0;
+    padding: 50px 54px 46px;
+  }
+
+  .focus-mode .detail-frame {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: 100%;
+  }
+
   .portrait .detail-frame {
     width: min(68%, 520px);
     aspect-ratio: 2 / 3;
@@ -322,6 +454,18 @@
     aspect-ratio: 3 / 2;
   }
 
+  .portrait .focus-mode .detail-frame {
+    width: min(calc(66.667dvh - 194px), calc(100vw - 132px), 520px);
+  }
+
+  .square .focus-mode .detail-frame {
+    width: min(calc(100dvh - 290px), calc(100vw - 132px), 760px);
+  }
+
+  .landscape .focus-mode .detail-frame {
+    width: min(calc(150dvh - 435px), calc(100vw - 132px), 1120px);
+  }
+
   .stage-label {
     position: absolute;
     z-index: 3;
@@ -329,8 +473,8 @@
     left: 34px;
     display: flex;
     justify-content: space-between;
-    color: rgb(52 42 28 / 45%);
-    font-size: 8px;
+    color: rgb(52 42 28 / 62%);
+    font-size: 10px;
   }
 
   .stage-label-top {
@@ -339,6 +483,36 @@
 
   .stage-label-bottom {
     bottom: 34px;
+  }
+
+  .stage-focus {
+    position: absolute;
+    z-index: 4;
+    top: 19px;
+    left: 50%;
+    display: flex;
+    min-height: 34px;
+    padding: 0 12px;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgb(71 50 27 / 28%);
+    color: var(--ink-soft);
+    background: rgb(247 242 232 / 72%);
+    font: 10px var(--mono);
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transform: translateX(-50%);
+    backdrop-filter: blur(7px);
+  }
+
+  .stage-focus:hover {
+    border-color: var(--cinnabar);
+    color: var(--cinnabar);
+  }
+
+  .stage-focus:focus-visible {
+    outline: 2px solid var(--cinnabar);
+    outline-offset: 3px;
   }
 
   .detail-nav {
@@ -377,6 +551,16 @@
     border-color: color-mix(in srgb, var(--cinnabar) 55%, var(--line-strong));
   }
 
+  .time-explorer.playing {
+    box-shadow: 0 14px 42px color-mix(in srgb, var(--cinnabar) 14%, transparent);
+  }
+
+  .focus-mode .time-explorer {
+    margin-top: 0;
+    padding: 10px 18px 9px;
+    box-shadow: 0 12px 42px rgb(58 41 20 / 16%);
+  }
+
   .explorer-heading {
     position: relative;
     z-index: 1;
@@ -395,19 +579,20 @@
   .explorer-heading strong,
   .time-explorer label,
   .timeline-ticks,
-  .explorer-heading button {
+  .explorer-heading button,
+  .playback-controls {
     font-family: var(--mono);
     letter-spacing: 0.08em;
   }
 
   .explorer-heading span {
     color: var(--ink-soft);
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .explorer-heading strong {
     color: var(--jade);
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .exploring .explorer-heading strong {
@@ -439,6 +624,7 @@
   }
 
   .explorer-heading button:focus-visible,
+  .playback-controls button:focus-visible,
   .timeline-ticks button:focus-visible,
   .time-explorer input:focus-visible {
     outline: 2px solid var(--cinnabar);
@@ -450,8 +636,8 @@
     z-index: 1;
     display: block;
     margin-top: 15px;
-    color: var(--ink-faint);
-    font-size: 10px;
+    color: var(--ink-soft);
+    font-size: 11px;
   }
 
   .time-explorer input {
@@ -475,11 +661,11 @@
   .timeline-ticks button {
     min-height: 34px;
     border: 0;
-    color: var(--ink-faint);
+    color: var(--ink-soft);
     background: transparent;
     cursor: pointer;
     font: inherit;
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .timeline-ticks button:first-child {
@@ -492,6 +678,182 @@
 
   .timeline-ticks button:hover {
     color: var(--cinnabar);
+  }
+
+  .playback-controls {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    margin-top: 8px;
+    padding-top: 12px;
+    grid-template-columns: minmax(190px, auto) 1fr;
+    align-items: center;
+    gap: 16px;
+    border-top: 1px solid var(--line);
+  }
+
+  .play-toggle {
+    min-height: 42px;
+    padding: 0 16px;
+    border: 1px solid var(--cinnabar);
+    color: var(--cinnabar);
+    background: transparent;
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  .play-toggle[aria-pressed="true"] {
+    color: var(--paper-light);
+    background: var(--cinnabar);
+  }
+
+  .play-toggle > span {
+    display: inline-block;
+    min-width: 18px;
+    margin-right: 4px;
+  }
+
+  .speed-selector {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+  }
+
+  .speed-selector > span {
+    margin-right: 3px;
+    color: var(--ink-soft);
+    font-size: 10px;
+  }
+
+  .speed-selector button {
+    display: grid;
+    min-width: 60px;
+    min-height: 42px;
+    padding: 4px 8px;
+    place-items: center;
+    border: 1px solid var(--line-strong);
+    color: var(--ink-soft);
+    background: transparent;
+    font: 600 11px var(--mono);
+    cursor: pointer;
+  }
+
+  .speed-selector button small {
+    color: var(--ink-faint);
+    font-size: 8px;
+    font-weight: 400;
+  }
+
+  .speed-selector button.active {
+    border-color: var(--ink);
+    color: var(--ink);
+    background: color-mix(in srgb, var(--paper-deep) 45%, transparent);
+  }
+
+  .speed-selector button.active small {
+    color: var(--ink-soft);
+  }
+
+  .reset-compact {
+    display: none;
+  }
+
+  .focus-mode .explorer-heading {
+    grid-template-columns: 1fr auto auto;
+    gap: 14px;
+  }
+
+  .focus-mode .time-explorer > label {
+    display: none;
+  }
+
+  .focus-mode .time-explorer input {
+    height: 22px;
+    margin-top: 3px;
+  }
+
+  .focus-mode .timeline-ticks {
+    margin-top: -5px;
+  }
+
+  .focus-mode .timeline-ticks button {
+    min-height: 25px;
+  }
+
+  .focus-mode .playback-controls {
+    margin-top: 1px;
+    padding-top: 6px;
+  }
+
+  @media (min-width: 821px) {
+    .exhibit-column.focus-mode {
+      grid-template-columns: minmax(0, 1fr) 340px;
+      grid-template-rows: minmax(0, 1fr);
+    }
+
+    .focus-mode .detail-stage {
+      padding: 36px 24px 28px;
+    }
+
+    .portrait .focus-mode .detail-frame {
+      width: min(calc((100dvh - 104px) * 0.6667), calc(100vw - 430px), 520px);
+    }
+
+    .square .focus-mode .detail-frame {
+      width: min(calc(100dvh - 104px), calc(100vw - 430px), 760px);
+    }
+
+    .landscape .focus-mode .detail-frame {
+      width: min(calc((100dvh - 104px) * 1.5), calc(100vw - 430px), 1120px);
+    }
+
+    .focus-mode .time-explorer {
+      display: flex;
+      height: 100%;
+      flex-direction: column;
+      justify-content: center;
+      padding: 24px 20px;
+    }
+
+    .focus-mode .explorer-heading {
+      grid-template-columns: 1fr auto;
+      gap: 14px 10px;
+    }
+
+    .focus-mode .explorer-heading button {
+      width: 100%;
+      grid-column: 1 / -1;
+    }
+
+    .focus-mode .time-explorer input {
+      margin-top: 18px;
+    }
+
+    .focus-mode .timeline-ticks {
+      margin-top: 0;
+    }
+
+    .focus-mode .playback-controls {
+      margin-top: 18px;
+      padding-top: 18px;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .focus-mode .speed-selector {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .focus-mode .speed-selector > span {
+      margin: 0 0 3px;
+      grid-column: 1 / -1;
+    }
+
+    .focus-mode .speed-selector button {
+      min-width: 0;
+    }
   }
 
   @media (max-width: 1050px) {
@@ -532,6 +894,14 @@
     }
 
     .landscape .detail-stage { min-height: min(82vw, 680px); }
+
+    .playback-controls {
+      grid-template-columns: 1fr;
+    }
+
+    .speed-selector {
+      justify-content: flex-start;
+    }
   }
 
   @media (max-width: 520px) {
@@ -609,6 +979,143 @@
 
     .time-explorer label {
       line-height: 1.5;
+    }
+
+    .speed-selector {
+      display: grid;
+      grid-template-columns: 1fr repeat(3, minmax(54px, auto));
+    }
+
+    .speed-selector button {
+      min-width: 0;
+    }
+
+    .exhibit-column.focus-mode {
+      padding: 8px;
+      gap: 8px;
+    }
+
+    .focus-mode .detail-stage,
+    .square .focus-mode .detail-stage,
+    .landscape .focus-mode .detail-stage {
+      min-height: 0;
+      padding: 40px 8px 34px;
+    }
+
+    .focus-mode .detail-frame {
+      height: auto;
+    }
+
+    .portrait .focus-mode .detail-frame {
+      width: min(calc(66.667dvh - 163px), calc(100vw - 32px));
+    }
+
+    .square .focus-mode .detail-frame {
+      width: min(calc(100dvh - 244px), calc(100vw - 32px));
+    }
+
+    .landscape .focus-mode .detail-frame {
+      width: min(calc(150dvh - 366px), calc(100vw - 32px));
+    }
+
+    .focus-mode .stage-label {
+      right: 14px;
+      left: 14px;
+      font-size: 8px;
+    }
+
+    .focus-mode .stage-label-top {
+      top: 15px;
+    }
+
+    .focus-mode .stage-label-bottom {
+      bottom: 13px;
+    }
+
+    .focus-mode .stage-focus {
+      top: 9px;
+      min-height: 28px;
+      padding: 0 8px;
+      font-size: 8px;
+    }
+
+    .focus-mode .time-explorer {
+      padding: 9px 11px 7px;
+    }
+
+    .focus-mode .explorer-heading {
+      grid-template-columns: auto 1fr auto;
+      gap: 9px;
+    }
+
+    .focus-mode .explorer-heading > div > span,
+    .focus-mode .reset-full {
+      display: none;
+    }
+
+    .focus-mode .reset-compact {
+      display: inline;
+    }
+
+    .focus-mode .explorer-heading output {
+      justify-self: center;
+      font-size: 23px;
+    }
+
+    .focus-mode .explorer-heading button {
+      width: auto;
+      min-height: 34px;
+      grid-column: auto;
+    }
+
+    .focus-mode .playback-controls {
+      grid-template-columns: minmax(138px, auto) 1fr;
+      gap: 7px;
+    }
+
+    .focus-mode .play-toggle {
+      min-height: 38px;
+      padding: 0 9px;
+      font-size: 9px;
+    }
+
+    .focus-mode .speed-selector {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+    }
+
+    .focus-mode .speed-selector > span,
+    .focus-mode .speed-selector button small {
+      display: none;
+    }
+
+    .focus-mode .speed-selector button {
+      min-width: 0;
+      min-height: 38px;
+      padding: 0 5px;
+    }
+  }
+
+  @media (max-height: 700px) {
+    .focus-mode .detail-stage {
+      padding-top: 36px;
+      padding-bottom: 30px;
+    }
+
+    .focus-mode .time-explorer {
+      padding-top: 7px;
+      padding-bottom: 6px;
+    }
+
+    .focus-mode .explorer-heading > div > span,
+    .focus-mode .timeline-ticks {
+      display: none;
+    }
+
+    .focus-mode .playback-controls {
+      margin-top: 0;
+      padding-top: 5px;
     }
   }
 </style>

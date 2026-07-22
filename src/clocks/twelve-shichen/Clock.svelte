@@ -291,7 +291,7 @@
 
   .title strong {
     font-family: "Songti SC", "STSong", "SimSun", serif;
-    font-size: clamp(13px, 3.2cqw, 24px);
+    font-size: clamp(16px, 3.6cqw, 28px);
     font-weight: 500;
     letter-spacing: 0.12em;
   }
@@ -304,14 +304,14 @@
   .next-period span,
   .footer {
     color: color-mix(in srgb, var(--muted) 78%, white);
-    font-size: clamp(7px, 1.5cqw, 11px);
+    font-size: clamp(14px, 3.1cqw, 22px);
     font-weight: 500;
     letter-spacing: 0.18em;
   }
 
   .time-rule {
     font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
-    font-size: clamp(7px, 1.2cqw, 9px);
+    font-size: clamp(14px, 3.1cqw, 22px);
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.08em;
     white-space: nowrap;
@@ -323,7 +323,7 @@
     gap: 0.22em;
     color: #f8f5ed;
     font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
-    font-size: clamp(14px, 3.4cqw, 26px);
+    font-size: clamp(17px, 3.8cqw, 30px);
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.06em;
   }
@@ -331,7 +331,7 @@
   .digital small {
     margin-top: 0.12em;
     color: var(--accent);
-    font-size: 0.48em;
+    font-size: 0.8em;
     letter-spacing: 0;
   }
 
@@ -398,7 +398,7 @@
 
   .branch-name {
     color: color-mix(in srgb, var(--muted) 75%, white);
-    font-size: clamp(8px, 1.8cqw, 13px);
+    font-size: clamp(15px, 3.1cqw, 22px);
     letter-spacing: 0.08em;
     white-space: nowrap;
   }
@@ -408,7 +408,7 @@
     margin: 0;
     color: color-mix(in srgb, #e8e2d5 72%, var(--muted));
     font-family: "Songti SC", "STSong", "SimSun", serif;
-    font-size: clamp(11px, 2.5cqw, 18px);
+    font-size: clamp(15px, 3.1cqw, 22px);
     line-height: 1.7;
     letter-spacing: 0.08em;
   }
@@ -455,7 +455,7 @@
   .next-period strong {
     color: color-mix(in srgb, var(--accent) 80%, white);
     font-family: "Songti SC", "STSong", "SimSun", serif;
-    font-size: clamp(10px, 2.4cqw, 17px);
+    font-size: clamp(15px, 3.1cqw, 22px);
     font-weight: 500;
     letter-spacing: 0.12em;
   }
@@ -539,7 +539,7 @@
 
   .tick-branch {
     font-family: "Songti SC", "STSong", "SimSun", serif;
-    font-size: clamp(10px, 2.4cqw, 17px);
+    font-size: clamp(15px, 3.1cqw, 22px);
     text-align: center;
   }
 
@@ -547,7 +547,7 @@
     overflow: hidden;
     max-width: 0;
     font-family: "Songti SC", "STSong", "SimSun", serif;
-    font-size: clamp(7px, 1.6cqw, 11px);
+    font-size: clamp(14px, 3.1cqw, 22px);
     letter-spacing: 0.1em;
     opacity: 0;
     white-space: nowrap;
@@ -568,7 +568,7 @@
 
   .tick.current .tick-branch {
     color: #fff9ea;
-    font-size: clamp(14px, 3.4cqw, 25px);
+    font-size: clamp(17px, 3.8cqw, 28px);
     text-shadow: 0 0 14px var(--accent);
   }
 
@@ -593,9 +593,28 @@
 
   @container double-hours (max-width: 340px) {
     .branch-name {
-      font-size: 7px;
+      font-size: 10px;
       letter-spacing: 0.02em;
     }
+  }
+
+  @media (max-width: 520px) {
+    .title strong { font-size: 34px; }
+    .title span { display: none; }
+    .time-rule { font-size: 28px; letter-spacing: 0.02em; }
+    .digital { font-size: 42px; }
+    .digital small { font-size: 0.82em; }
+    .index-line,
+    .progress-label,
+    .next-period span,
+    .scale-title { font-size: 32px; }
+    .footer { font-size: 30px; }
+    .branch-name { font-size: 30px; letter-spacing: 0; }
+    .descriptor { font-size: 32px; }
+    .next-period strong { font-size: 32px; }
+    .tick-branch { font-size: 32px; }
+    .tick.current .tick-branch { font-size: 36px; }
+    .tick-name { font-size: 30px; }
   }
 
   @container double-hours (max-height: 430px) {

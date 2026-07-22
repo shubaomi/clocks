@@ -5,6 +5,7 @@ import {
   getZodiacState,
 } from "../src/lib/time-periods.js";
 import {
+  advanceDaySecond,
   createClockTime,
   createClockTimeAtDaySecond,
   formatDaySecond,
@@ -76,4 +77,11 @@ test("timeline exploration covers the complete local day without mutating its li
   assert.deepEqual([end.hour, end.minute, end.second], [0, 0, 0]);
   assert.equal(end.day, 23);
   assert.deepEqual([live.hour, live.minute, live.second], [14, 35, 42]);
+});
+
+test("automatic day playback advances proportionally and loops after midnight", () => {
+  assert.equal(advanceDaySecond(0, 30_000, 60), 43_200);
+  assert.equal(advanceDaySecond(82_800, 5_000, 60), 3_600);
+  assert.equal(advanceDaySecond(0, 30_000, 30), 0);
+  assert.equal(advanceDaySecond(0, 5_000, 120), 3_600);
 });
