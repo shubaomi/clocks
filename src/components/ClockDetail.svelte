@@ -1,10 +1,12 @@
 <script>
   import ClockRenderer from "./ClockRenderer.svelte";
+  import SpatialExhibit from "./SpatialExhibit.svelte";
   import {
     advanceDaySecond,
     createClockTimeAtDaySecond,
     formatDaySecond,
   } from "../lib/clock-time.js";
+  import { getClockNeighbors, routeFor } from "../lib/catalog.js";
 
   const playbackSpeeds = [
     { duration: 120, label: "慢", detail: "2 分钟" },
@@ -12,13 +14,15 @@
     { duration: 30, label: "快", detail: "30 秒" },
   ];
 
-  let { clock, time } = $props();
+  let { clock, time, spatialEnabled = true } = $props();
   let exploring = $state(false);
   let selectedSecond = $state(0);
   let playing = $state(false);
   let playbackStarted = $state(false);
   let playbackDuration = $state(60);
   let focusMode = $state(false);
+  let exhibitColumn = $state();
+  let journal = $derived(getClockNeighbors(clock.slug));
   let timelineSecond = $derived(
     exploring
       ? selectedSecond
@@ -55,7 +59,28 @@
   };
 
   const handleKeydown = (event) => {
-    if (event.key === "Escape" && focusMode) focusMode = false;
+    if (!focusMode) return;
+    if (event.key === "Escape") {
+      focusMode = false;
+      return;
+    }
+    if (event.key !== "Tab" || !exhibitColumn) return;
+
+    const focusable = [...exhibitColumn.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )].filter((element) => element.getClientRects().length > 0);
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    const active = document.activeElement;
+    if (event.shiftKey && (active === first || !exhibitColumn.contains(active))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (active === last || !exhibitColumn.contains(active))) {
+      event.preventDefault();
+      first.focus();
+    }
   };
 
   $effect(() => {
@@ -79,17 +104,43 @@
   $effect(() => {
     if (!focusMode) return;
 
+    const returnFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : undefined;
     const previousOverflow = document.body.style.overflow;
+    const outsideElements = [
+      document.querySelector(".skip-link"),
+      document.querySelector("header"),
+      document.querySelector(".site-footer"),
+      document.querySelector(".breadcrumb"),
+      document.querySelector(".detail-copy"),
+      document.querySelector(".journal-index"),
+      document.querySelector(".detail-nav"),
+    ].filter(Boolean);
+    const previousInert = outsideElements.map((element) => [element, element.inert]);
+
     document.body.style.overflow = "hidden";
+    for (const element of outsideElements) element.inert = true;
+
     return () => {
       document.body.style.overflow = previousOverflow;
+      for (const [element, inert] of previousInert) element.inert = inert;
+      queueMicrotask(() => returnFocus?.focus({ preventScroll: true }));
     };
   });
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
-<main id="main" class="detail-page" class:focusing={focusMode} data-theme={clock.theme}>
+<main
+  id="main"
+  class="detail-page"
+  class:focusing={focusMode}
+  class:journal-enabled={spatialEnabled}
+  data-theme={clock.theme}
+  data-spatial={spatialEnabled ? "on" : "off"}
+  style={`--clock-ambient:${clock.ambient}`}
+>
   <div class="breadcrumb">
     <a href="/">时间造物集</a>
     <span aria-hidden="true">/</span>
@@ -128,7 +179,9 @@
     <div
       class="exhibit-column"
       class:focus-mode={focusMode}
-      role={focusMode ? "region" : undefined}
+      bind:this={exhibitColumn}
+      role={focusMode ? "dialog" : undefined}
+      aria-modal={focusMode ? "true" : undefined}
       aria-label={focusMode ? `${clock.titleZh}一屏时间探索` : undefined}
     >
       <div class="detail-stage">
@@ -146,7 +199,9 @@
         >{focusMode ? "退出一屏" : "一屏探索"} <span aria-hidden="true">{focusMode ? "×" : "↗"}</span></button>
 
         <div class="detail-frame" style={`aspect-ratio:${clock.canvas.width}/${clock.canvas.height}`}>
-          <ClockRenderer slug={clock.slug} time={displayTime} fit />
+          <SpatialExhibit enabled={spatialEnabled}>
+            <ClockRenderer slug={clock.slug} time={displayTime} fit />
+          </SpatialExhibit>
         </div>
 
         <div class="stage-label stage-label-bottom" aria-hidden="true">
@@ -220,6 +275,26 @@
       </section>
     </div>
   </section>
+
+  {#if spatialEnabled && journal}
+    <nav class="journal-index" aria-label="时间器物志相邻作品">
+      <a class="journal-previous" href={routeFor(journal.previous)}>
+        <small>上一器 · PREVIOUS</small>
+        <strong>{journal.previous.titleZh}</strong>
+        <span>{journal.previous.series}</span>
+      </a>
+      <span class="journal-current" aria-current="page">
+        <small>此器 · CURRENT</small>
+        <strong>{journal.current.titleZh}</strong>
+        <span>{journal.current.series}</span>
+      </span>
+      <a class="journal-next" href={routeFor(journal.next)}>
+        <small>下一器 · NEXT</small>
+        <strong>{journal.next.titleZh}</strong>
+        <span>{journal.next.series}</span>
+      </a>
+    </nav>
+  {/if}
 
   <nav class="detail-nav" aria-label="作品导航">
     <a href="/">← 返回全部时钟</a>
@@ -1116,6 +1191,374 @@
     .focus-mode .playback-controls {
       margin-top: 0;
       padding-top: 5px;
+    }
+  }
+
+  /* Approved direction D: one editorial entry, one spatial time object. */
+  .detail-page.journal-enabled {
+    width: min(100% - 48px, 1500px);
+    padding-top: 30px;
+  }
+
+  .journal-enabled .breadcrumb {
+    padding-bottom: 18px;
+    border-bottom: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  }
+
+  .journal-enabled .detail-layout {
+    min-height: calc(100vh - 144px);
+    min-height: calc(100dvh - 144px);
+    padding: clamp(54px, 7vw, 96px) 0 clamp(66px, 8vw, 112px);
+    grid-template-columns: minmax(320px, .72fr) minmax(560px, 1.28fr);
+    align-items: start;
+    gap: clamp(64px, 7vw, 116px);
+  }
+
+  .journal-enabled .detail-copy {
+    position: sticky;
+    top: 42px;
+    max-width: 560px;
+    padding: 7px 0 0 clamp(34px, 4vw, 64px);
+  }
+
+  .journal-enabled .detail-number {
+    top: 8px;
+  }
+
+  .journal-enabled .detail-number i {
+    height: 92px;
+    background: linear-gradient(var(--cinnabar), color-mix(in srgb, var(--cinnabar) 12%, transparent));
+  }
+
+  .journal-enabled h1 {
+    max-width: 10ch;
+    margin-top: 20px;
+    font-size: clamp(50px, 5.4vw, 80px);
+    line-height: 1.02;
+  }
+
+  .journal-enabled .lead {
+    max-width: 31em;
+    margin-top: clamp(38px, 5vw, 58px);
+    font-size: clamp(18px, 1.45vw, 21px);
+    line-height: 1.92;
+  }
+
+  .journal-enabled .note {
+    max-width: 40em;
+    line-height: 2;
+  }
+
+  .journal-enabled .facts {
+    margin-top: 32px;
+    gap: 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .journal-enabled .facts span {
+    padding: 9px 12px 8px 0;
+    border: 0;
+    color: var(--ink-soft);
+  }
+
+  .journal-enabled .facts span + span::before {
+    margin-right: 12px;
+    color: var(--cinnabar);
+    content: "·";
+  }
+
+  .journal-enabled .detail-rule {
+    margin-top: 28px;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .journal-enabled .exhibit-column {
+    padding-top: 0;
+  }
+
+  .journal-enabled .detail-stage {
+    min-height: 720px;
+    overflow: hidden;
+    padding: 70px clamp(52px, 5vw, 76px);
+    border-color: rgb(61 52 39 / 22%);
+    background:
+      linear-gradient(108deg, rgb(255 255 255 / 38%), transparent 25% 74%, rgb(64 43 18 / 6%)),
+      radial-gradient(circle at 72% 18%, color-mix(in srgb, var(--clock-ambient) 13%, transparent), transparent 36%),
+      repeating-linear-gradient(0deg, transparent 0 35px, rgb(73 55 31 / 2.4%) 35px 36px),
+      linear-gradient(145deg, #d8cfb9, #eee8dc 48%, #c7b596);
+    box-shadow:
+      inset 0 1px rgb(255 255 255 / 48%),
+      0 24px 70px rgb(57 39 17 / 11%);
+  }
+
+  .journal-enabled .detail-stage::before {
+    inset: 22px;
+    border-color: rgb(67 46 22 / 13%);
+  }
+
+  .journal-enabled .detail-frame {
+    overflow: visible;
+    border-radius: 2px;
+    box-shadow: none;
+  }
+
+  .journal-enabled .portrait .exhibit-column:not(.focus-mode) .detail-frame {
+    width: min(67%, 510px);
+  }
+
+  .journal-enabled .square .exhibit-column:not(.focus-mode) .detail-frame {
+    width: min(84%, 720px);
+  }
+
+  .journal-enabled .landscape .exhibit-column:not(.focus-mode) .detail-frame {
+    width: min(96%, 900px);
+  }
+
+  .journal-enabled .stage-focus {
+    border: 0;
+    border-bottom: 1px solid rgb(71 50 27 / 28%);
+    background: transparent;
+    backdrop-filter: none;
+  }
+
+  .journal-enabled .time-explorer {
+    margin-top: 20px;
+    border-width: 1px 0;
+    background: color-mix(in srgb, var(--paper) 86%, white);
+    box-shadow: none;
+  }
+
+  .journal-enabled .time-explorer::before {
+    display: none;
+  }
+
+  .journal-enabled .local-note {
+    font-size: 9px;
+    line-height: 1.6;
+  }
+
+  .journal-enabled .exhibit-column.focus-mode .detail-stage {
+    min-height: 0;
+  }
+
+  .journal-index {
+    display: grid;
+    margin-bottom: 34px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid var(--line-strong);
+    border-bottom: 1px solid var(--line-strong);
+  }
+
+  .journal-index > * {
+    display: grid;
+    min-width: 0;
+    min-height: 116px;
+    padding: 20px clamp(16px, 2.4vw, 34px);
+    align-content: center;
+    gap: 6px;
+    color: var(--ink-soft);
+    text-decoration: none;
+  }
+
+  .journal-index > * + * {
+    border-left: 1px solid var(--line);
+  }
+
+  .journal-index small,
+  .journal-index span {
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: .12em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .journal-index strong {
+    overflow: hidden;
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: clamp(17px, 1.5vw, 22px);
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .journal-current {
+    position: relative;
+    background: color-mix(in srgb, var(--clock-ambient) 5%, transparent);
+  }
+
+  .journal-current::before {
+    position: absolute;
+    top: -1px;
+    right: 24%;
+    left: 24%;
+    height: 2px;
+    background: var(--cinnabar);
+    content: "";
+  }
+
+  .journal-index a {
+    transition: color 180ms ease, background-color 180ms ease;
+  }
+
+  .journal-index a:hover {
+    color: var(--cinnabar);
+    background: rgb(255 255 255 / 18%);
+  }
+
+  .journal-index a:hover strong {
+    color: var(--cinnabar);
+  }
+
+  @media (max-width: 1180px) {
+    .journal-enabled .detail-layout {
+      grid-template-columns: minmax(280px, .68fr) minmax(500px, 1.32fr);
+      gap: 54px;
+    }
+
+    .journal-enabled .detail-stage {
+      min-height: 650px;
+      padding-right: 50px;
+      padding-left: 50px;
+    }
+  }
+
+  @media (max-width: 980px) {
+    .detail-page.journal-enabled {
+      width: min(100% - 32px, 900px);
+    }
+
+    .journal-enabled .detail-layout {
+      min-height: auto;
+      padding: 56px 0 76px;
+      grid-template-columns: 1fr;
+      gap: 60px;
+    }
+
+    .journal-enabled .detail-copy {
+      position: relative;
+      top: auto;
+      max-width: 680px;
+    }
+
+    .journal-enabled .detail-stage {
+      min-height: min(92vw, 740px);
+    }
+
+    .journal-enabled .portrait .exhibit-column:not(.focus-mode) .detail-stage {
+      min-height: min(116vw, 780px);
+    }
+
+    .journal-enabled .landscape .exhibit-column:not(.focus-mode) .detail-stage {
+      min-height: min(72vw, 650px);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .detail-page.journal-enabled {
+      width: min(100% - 28px, 1500px);
+      padding-top: 26px;
+    }
+
+    .journal-enabled .detail-layout {
+      padding: 44px 0 62px;
+      gap: 48px;
+    }
+
+    .journal-enabled .detail-copy {
+      padding-left: 27px;
+    }
+
+    .journal-enabled h1 {
+      max-width: none;
+      font-size: clamp(42px, 13vw, 54px);
+    }
+
+    .journal-enabled .lead {
+      margin-top: 32px;
+      font-size: 17px;
+    }
+
+    .journal-enabled .detail-stage {
+      padding: 45px 20px;
+      box-shadow: none;
+    }
+
+    .journal-enabled .portrait .exhibit-column:not(.focus-mode) .detail-stage {
+      min-height: min(142vw, 560px);
+    }
+
+    .journal-enabled .square .exhibit-column:not(.focus-mode) .detail-stage {
+      min-height: min(104vw, 430px);
+      padding: 38px 18px;
+    }
+
+    .journal-enabled .landscape .exhibit-column:not(.focus-mode) .detail-stage {
+      min-height: min(78vw, 340px);
+      padding: 42px 18px;
+    }
+
+    .journal-enabled .portrait .exhibit-column:not(.focus-mode) .detail-frame,
+    .journal-enabled .square .exhibit-column:not(.focus-mode) .detail-frame,
+    .journal-enabled .landscape .exhibit-column:not(.focus-mode) .detail-frame {
+      width: 100%;
+    }
+
+    .journal-enabled .exhibit-column.focus-mode .detail-stage {
+      min-height: 0;
+      padding: 40px 8px 34px;
+    }
+
+    .journal-enabled .local-note,
+    .journal-index small,
+    .journal-index span {
+      font-size: 10px;
+      letter-spacing: .08em;
+    }
+
+    .journal-enabled .journal-index {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .journal-index > * {
+      min-height: 98px;
+      padding: 16px 14px;
+    }
+
+    .journal-index .journal-current {
+      grid-column: 1 / -1;
+      grid-row: 1;
+      border-bottom: 1px solid var(--line);
+      border-left: 0;
+    }
+
+    .journal-index .journal-previous {
+      border-left: 0;
+    }
+
+    .journal-index .journal-next {
+      border-left: 1px solid var(--line);
+    }
+
+    .journal-index strong {
+      font-size: 17px;
+    }
+  }
+
+  @media (max-width: 600px) and (max-height: 700px) {
+    .journal-enabled .exhibit-column.focus-mode .detail-stage {
+      padding-top: 36px;
+      padding-bottom: 30px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .journal-index a {
+      transition: none;
     }
   }
 </style>

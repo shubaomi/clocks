@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { clocks, getClock, routeFor } from "../src/lib/catalog.js";
+import { clocks, getClock, getClockNeighbors, routeFor } from "../src/lib/catalog.js";
 import { readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -35,4 +35,17 @@ test("every catalog slug has a matching clock component", async () => {
   const directories = await readdir(root, { withFileTypes: true });
   const available = new Set(directories.filter((entry) => entry.isDirectory()).map((entry) => entry.name));
   for (const clock of clocks) assert.ok(available.has(clock.slug), `Missing component directory: ${clock.slug}`);
+});
+
+test("journal navigation follows catalog order and wraps at both ends", () => {
+  const first = getClockNeighbors(clocks[0].slug);
+  assert.equal(first.previous, clocks.at(-1));
+  assert.equal(first.current, clocks[0]);
+  assert.equal(first.next, clocks[1]);
+
+  const last = getClockNeighbors(clocks.at(-1).slug);
+  assert.equal(last.previous, clocks.at(-2));
+  assert.equal(last.current, clocks.at(-1));
+  assert.equal(last.next, clocks[0]);
+  assert.equal(getClockNeighbors("missing-clock"), undefined);
 });

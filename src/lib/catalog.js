@@ -249,4 +249,15 @@ export function routeFor(clock) {
   return `/${clock.slug}/`;
 }
 
+export function getClockNeighbors(slug) {
+  const currentIndex = clocks.findIndex((clock) => clock.slug === slug);
+  if (currentIndex === -1) return undefined;
+
+  return {
+    previous: clocks[(currentIndex - 1 + clocks.length) % clocks.length],
+    current: clocks[currentIndex],
+    next: clocks[(currentIndex + 1) % clocks.length],
+  };
+}
+
 export const seriesOrder = ["中国时序", "中国哲思", "古代计时器", "中国天文", "世界星空"];

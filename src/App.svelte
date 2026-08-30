@@ -6,12 +6,19 @@
   import NotFound from "./components/NotFound.svelte";
   import { createClockTime } from "./lib/clock-time.js";
   import { getClock } from "./lib/catalog.js";
+  import {
+    resolveTimeObjectJournalEnabled,
+    timeObjectJournalEnabled,
+  } from "./lib/feature-flags.js";
 
   const normalizedPath = window.location.pathname
     .replace(/\/index\.html$/, "/")
     .replace(/^\/+|\/+$/g, "");
   const activeClock = normalizedPath ? getClock(normalizedPath) : undefined;
   const isHome = normalizedPath === "";
+  const spatialEnabled = timeObjectJournalEnabled && resolveTimeObjectJournalEnabled({
+    queryValue: new URLSearchParams(window.location.search).get("spatial"),
+  });
 
   let time = $state(createClockTime());
 
@@ -47,7 +54,7 @@
 <SiteHeader {time} activeSlug={activeClock?.slug ?? ""} />
 
 {#if activeClock}
-  <ClockDetail clock={activeClock} {time} />
+  <ClockDetail clock={activeClock} {time} {spatialEnabled} />
 {:else if isHome}
   <GalleryPage {time} />
 {:else}
