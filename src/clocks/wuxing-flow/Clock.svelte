@@ -1,11 +1,11 @@
 <script>
   import { onMount } from "svelte";
   import { phases, phaseAt } from "./phases.js";
-  import { drawRelief } from "./relief.js";
+  import { createReliefRenderer } from "./relief.js";
 
   let { time, motion = true } = $props();
   let canvas;
-  let context = $state.raw(null);
+  let draw = $state.raw(null);
   let state = $derived(phaseAt(time.second, time.millisecond));
   let phase = $derived(phases[state.index]);
   let index = $derived(state.index);
@@ -14,14 +14,10 @@
   const ticks = Array.from({ length: 61 }, (_, i) => i);
 
   onMount(() => {
-    const drawing = canvas.getContext("2d");
-    if (drawing) {
-      drawing.setTransform(canvas.width / 620, 0, 0, canvas.height / 450, 0, 0);
-      context = drawing;
-    }
+    draw = createReliefRenderer(canvas);
   });
   $effect(() => {
-    if (context) drawRelief(context, index, sample, motion);
+    draw?.(index, sample, motion);
   });
 </script>
 
@@ -37,11 +33,7 @@
       <p>{phase.name}生{phases[state.next].name}</p>
     </div>
     <div class="relief" aria-hidden="true">
-      <svg viewBox="0 0 620 450" class="ground">
-        <ellipse cx="309" cy="366" rx="238" ry="60" />
-        <path d="M36 366H76m466 0h40M309 293v9m0 125v11" />
-      </svg>
-      {#if !context}
+      {#if !draw}
         <span class="fallback">{phase.name}</span>
       {/if}
       <canvas bind:this={canvas} width="744" height="540"></canvas>
@@ -76,8 +68,8 @@
     color: #eee9d9;
     font-family: var(--serif);
     background:
-      radial-gradient(ellipse at 71% 53%, #52605a 0%, transparent 53%),
-      linear-gradient(112deg, #182d2b 7%, #30453e 66%, #25382f);
+      radial-gradient(ellipse at 68% 57%, #3d5046 0%, transparent 52%),
+      linear-gradient(115deg, #112724, #233932 73%, #142922);
   }
   header, .legend { display: flex; align-items: center; justify-content: space-between; }
   header { padding-bottom: 20px; border-bottom: 1px solid #afbeb391; }
@@ -94,8 +86,7 @@
   .reading span { display: block; margin-left: 10px; font-size: 19px; }
   .reading p { margin: 32px 0 0 10px; font-size: 25px; letter-spacing: .16em; }
   .relief { position: absolute; inset: 0 -28px 0 180px; }
-  .relief canvas, .ground { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-  .ground { fill: none; stroke: #c8d3bf; stroke-width: 1; opacity: .38; }
+  .relief canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
   .fallback { position: absolute; inset: 0; display: grid; place-content: center; color: var(--mineral); font-size: 150px; }
   .sequence { display: grid; grid-template-columns: repeat(5, 1fr); padding-bottom: 12px; }
   .sequence span { color: #b9c8bb; font-size: 25px; }

@@ -98,6 +98,8 @@ The thirteenth catalog entry, 五行流刻, extends the same exhibit frame. The 
 
 The full-day scrubber selects any local time. Automatic playback for this work loops the selected minute in 120, 60 or 30 seconds, so even the fastest setting gives each material six seconds. The original twelve works retain their full-day playback.
 
+After viewing the metal study, the owner asked for a more convincing rendering. Keep the journal, clock and five-part sequence. Give each material its own silhouette: a folded metal ribbon with a reflective edge, a falling drop above concentric waves, a cut of timber with end grain and bark, rising tongues of flame, and a section of folded earth. For the last part of a phase, dissolve into the incoming material under the same light. A still phase remains readable with motion reduced. These are contemporary material studies.
+
 One browser-local time source feeds every mounted clock. Detail pages update frequently enough for smooth progress effects; the collection page updates less often to reduce unnecessary work. No user time or location data leaves the browser.
 
 ## Deployment
