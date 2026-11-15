@@ -76,7 +76,7 @@ export const clocks = [
     description:
       "让阴与阳的边界由本地时间持续推动，在午夜、黎明、正午和黄昏之间缓慢呼吸。",
     note:
-      "太极不是静态图案；日进度改变明暗比例，秒钟只在墨色边缘留下轻微涟漪。",
+      "阴阳鱼随一日进度转动，盘缘的明暗随昼夜推移，两色交界处保留清晰的曲线。",
     facts: ["昼夜消长", "四时节点", "本地民用时间"],
   },
   {
@@ -238,6 +238,27 @@ export const clocks = [
     note:
       "这是把六十组合映射到六十秒的当代时间编码，并非传统的逐秒干支纪时。",
     facts: ["10 天干", "12 地支", "60 秒循环"],
+  },
+  {
+    slug: "wuxing-flow",
+    number: "拾叁",
+    titleZh: "五行流刻",
+    titleEn: "Five Phases in a Minute",
+    playbackCycle: "minute",
+    kicker: "五行相生",
+    rule: "一行十二秒 · 一分一循环",
+    ruleEn: "12 SECONDS PER PHASE · 5 PHASES PER MINUTE",
+    aspect: "landscape",
+    canvas: { width: 960, height: 760 },
+    series: "中国哲思",
+    theme: "wuxing",
+    ambient: "#51736b",
+    mappingKind: "contemporary",
+    description:
+      "把一分钟交给五种材质。金的切面、水的波纹、木的年轮、火的锋芒与土的层理，依次在侧光下显形。",
+    note:
+      "金生水，水生木，木生火，火生土，土生金。作品取五行相生的次序，从每分钟的第零秒起，以十二秒为一行。这个时长是本作的当代设计。",
+    facts: ["五行相生", "每行 12 秒", "本地时间"],
   },
 ];
 

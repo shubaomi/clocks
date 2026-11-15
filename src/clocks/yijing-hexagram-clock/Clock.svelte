@@ -1,6 +1,6 @@
 <script>
   import { getHexagramState } from "../../lib/time-systems.js";
-  let { time } = $props();
+  let { time, motion = true } = $props();
   let state = $derived(getHexagramState(time));
 </script>
 
@@ -12,9 +12,11 @@
   </div>
   <main>
     <div class="number">{String(state.number).padStart(2,"0")}<small>/ 64</small></div>
-    <div class="lines">
+    <div class="lines" class:motion>
       {#each [...state.lines].reverse() as yang, index}
-        <div class:yang><span></span><span></span><em>{6-index}</em></div>
+        <div class="yao" class:yang>
+          <span></span><span></span><em>{6-index}</em>
+        </div>
       {/each}
     </div>
     <div class="name"><strong>{state.name}</strong><span>{state.upper.zh}{state.lower.zh} · {state.upper.en} OVER {state.lower.en}</span></div>
@@ -28,4 +30,37 @@
   main{display:grid;margin-top:74px;justify-items:center}.number{position:absolute;top:-24px;left:0;color:#999185;font-size:20px}.number small{font-size:9px}.lines{display:grid;width:430px;gap:23px}.lines div{position:relative;display:flex;gap:48px}.lines span{height:28px;flex:1;background:#e9e2d2}.lines .yang{gap:0}.lines em{position:absolute;right:-48px;top:5px;color:#777168;font:10px monospace;font-style:normal}.name{display:grid;margin-top:55px;text-align:center;gap:8px}.name strong{font-size:82px;font-weight:400}.name span{color:#aaa196;font-size:10px}.progress{position:absolute;right:52px;bottom:116px;left:52px;height:2px;background:#e8dfce25}.progress div{height:100%;background:#bd4a36}.progress span{position:absolute;right:0;top:12px;color:#999084;font-size:9px}footer{position:absolute;right:52px;bottom:46px;left:52px;display:flex;justify-content:space-between;color:#999185;font-size:9px}footer b{color:#d6cbb8;font-weight:400}
   header span{font-size:21px}time{font-size:42px}time small{font-size:21px}.grid-copy{font-size:20px}.number{font-size:30px}.number small{font-size:21px}.lines em{font-size:21px}.name span{font-size:21px}.progress span{font-size:21px}footer{font-size:21px}
   @media(max-width:520px){header b{font-size:52px}header span{display:none}time{font-size:58px}time small{font-size:36px}.grid-copy{font-size:28px}.number{font-size:38px}.number small{font-size:30px}.lines em{font-size:30px}.name span{font-size:30px}.progress span{font-size:30px}footer{display:none}}
+  .lines {
+    position: relative;
+    isolation: isolate;
+    gap: 26px;
+    padding: 11px 0 18px;
+  }
+  .lines::before {
+    position: absolute;
+    z-index: -1;
+    inset: -12px -19px -14px;
+    border-top: 1px solid #f1e2bc26;
+    border-bottom: 1px solid #080806;
+    background: linear-gradient(100deg, #151513aa, #23211d77 76%, #36302866);
+    content: "";
+  }
+  .lines .yao {
+    gap: 0;
+    align-items: center;
+    background: linear-gradient(#0d0c0a, #292621 62%, #161411);
+    box-shadow: 0 1px #5b5143;
+  }
+  .yao span {
+    background: linear-gradient(177deg, #f8f1e2 0, #e2d9c5 16%, #c6bca8 81%, #988975 84%, #a99983);
+    box-shadow: 1px 4px 4px #0c0b09a6;
+    transform: scaleX(.875);
+    transform-origin: left;
+  }
+  .yao span + span {transform-origin: right}
+  .yao.yang span {transform: scaleX(1)}
+  .yao em {color: #aba08b}
+  @media (prefers-reduced-motion: no-preference) {
+    .lines.motion .yao span {transition: transform 380ms cubic-bezier(.22,.72,.18,1)}
+  }
 </style>

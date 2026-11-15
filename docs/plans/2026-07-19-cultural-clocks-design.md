@@ -73,6 +73,31 @@ Run the existing test, build, and distribution checks; add tests for flag resolu
 
 ## Time data
 
+### Motion inside the exhibits
+
+The shared journal composition remains the visual authority. Within its frame, each artwork can now show the material consequence of its own time rule. The existing clock time and interaction controls are authoritative in live, selected and playback modes. Use local SVG or CSS, zero runtime dependencies, no independent clock and no autonomous camera. Preserve the original dimensions, navigation, language and cultural sources. Any new interpretation belongs in the catalog and research notes.
+
+| Exhibit | Visible change to verify |
+| --- | --- |
+| 十二时辰 | A light travels through the current watch and the inscription changes at its boundary. |
+| 十二生肖 | A seal seats into the paper when the animal changes. |
+| 节气物候 | Engraved landscape layers reveal movement through the compressed year. |
+| 太极 | The turning face and its rim reveal the existing day rotation. |
+| 易卦 | Only lines changing between hexagrams move. |
+| 漏刻 | A drop forms, falls, and disturbs the water independently of the slow daily float. |
+| 二十八宿 | Fixed bearings frame the turning sky and its separate moon marker. |
+| 黄道 | Daily sky motion is distinct from the annual solar marker. |
+| 日晷 | The raised gnomon casts the existing civil-time shadow across the engraved face. |
+| 香篆 | The ember follows the daily track, leaving ash below a rising, drifting plume. |
+| 水运仪象 | The wheel carries the movement into the timed reporting mechanism. |
+| 干支 | Two stepped rings register the current pair against a fixed index. |
+
+Reduced motion and spatial-off retain the data-bearing positions and text while suppressing embellishment. Pause decorative rendering outside the viewport and in hidden documents. No new audio, network assets, or GPU context. Verify direct routes, frozen values, boundaries, mobile fit, keyboard exploration and live advances. Disable spatial accents with the existing build flag or query; revert the scoped artwork change to recover its previous drawing.
+
+The thirteenth catalog entry, 五行流刻, extends the same exhibit frame. The generative sequence metal, water, wood, fire, earth supplies five distinct sculptural profiles. The artist's clock assigns them equal twelve-second intervals. A low side light reveals the relief of each material. The five names, current material, next material and local clock stay in HTML. Reuse the existing time explorer, mobile fit and direct-route generator. A fixed relief with advancing labels and scale is the reduced-motion form. Verify all five boundaries, the return to metal at the minute, and equality of readouts in both modes. Palette and form are artistic interpretations subject to visual and cultural review.
+
+The full-day scrubber selects any local time. Automatic playback for this work loops the selected minute in 120, 60 or 30 seconds, so even the fastest setting gives each material six seconds. The original twelve works retain their full-day playback.
+
 One browser-local time source feeds every mounted clock. Detail pages update frequently enough for smooth progress effects; the collection page updates less often to reduce unnecessary work. No user time or location data leaves the browser.
 
 ## Deployment

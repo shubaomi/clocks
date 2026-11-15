@@ -1,6 +1,6 @@
 <script>
   import { getSundialState } from "../../lib/time-systems.js";
-  let { time } = $props();
+  let { time, motion = true } = $props();
   let state = $derived(getSundialState(time));
 </script>
 
@@ -8,10 +8,10 @@
   <header><div><b>圭表日晷</b><span>GNOMON & SUNDIAL</span></div><time>{time.hh}:{time.mm}<small>{time.ss}</small></time></header>
   <main>
     <section class="dial">
-      <div class="ring">
+      <div class="ring" class:relief={motion} style:--sun={state.shadowAngle + 90 + "deg"}>
         {#each Array(24) as _, index}<i class:current={index === time.hour} style={`transform:rotate(${index*15}deg)`}><span style={`transform:translateX(-50%) rotate(${-index*15}deg)`}>{index%3===0?String(index).padStart(2,"0"):""}</span></i>{/each}
         <div class="shadow" style={`transform:rotate(${state.shadowAngle}deg) scaleY(${state.shadowLength})`}></div>
-        <div class="gnomon"></div>
+        <div class="gnomon" aria-hidden="true"><i></i></div>
       </div>
       <h2>影向见时</h2><p>DIRECTION OF SHADOW · LOCAL CIVIL TIME</p><p class="dial-note">00 上 · 06 右 · 12 下 · 18 左</p>
     </section>
@@ -32,4 +32,21 @@
   footer{display:flex;justify-content:space-between;border-top:1px solid #4d2d2044;padding-top:20px;color:#724a35;font-size:8px}footer b{color:#3d281e;font-weight:600}
   header span{font-size:19px}time{font-size:42px}time small{font-size:19px}.ring>i span{font-size:18px}p{font-size:18px}.seasons{font-size:18px}footer{font-size:18px}
   @media(max-width:520px){header b{font-size:52px}header span{display:none}time{font-size:58px}time small{font-size:44px}.ring>i span{font-size:38px}.pillar b{font-size:42px}h2{font-size:42px}p{font-size:38px}.dial-note{font-size:32px}.seasons{font-size:40px}footer{display:none}}
+  .ring{isolation:isolate;background:radial-gradient(ellipse at 35% 20%,#e9c688,#c79b62 78%,#a37249);border:4px solid #815e3f}
+  .ring.relief{overflow:visible;transform:perspective(820px) rotateX(26deg);box-shadow:0 2px 0 #f2d39b,0 6px 0 #986a43,0 13px 0 #7d5639,7px 25px 24px #603a2444,inset 0 0 0 4px #dfbf86}
+  .ring:before{inset:31px;box-shadow:0 0 0 15px #ddbb7e55,inset 0 0 0 1px #efcd8b}
+  .ring.relief:after{content:"";position:absolute;inset:53px;z-index:-1;border-radius:50%;background:linear-gradient(var(--sun),#fff0bd65,transparent 55%,#965e3428);border:1px solid #794d3238}
+  .ring>i.current:before{box-shadow:none}
+  .shadow{left:calc(50% - 8px);width:16px;background:linear-gradient(#482c20 0%,#4e3021b5 40%,#69432b75 88%,transparent);clip-path:polygon(29% 0,71% 0,100% 97%,60% 100%,13% 97%);filter:none}
+  .ring.relief .shadow:after{content:"";position:absolute;inset:0 5px 26%;background:linear-gradient(#36251b,#69432b15);border-radius:50%}
+  .gnomon{width:27px;height:19px;background:radial-gradient(ellipse at 40% 30%,#ddbe83,#9b6a41 47%,#573b29 76%);box-shadow:1px 3px 3px #3c261d77}
+  .ring.relief .gnomon i{position:absolute;bottom:43%;left:20%;width:36px;height:62px;background:linear-gradient(108deg,#80502d 42%,#f2d492 45%,#a77948 72%,#6a492e);clip-path:polygon(83% 0,42% 95%,19% 100%,0 92%)}
+  .pillar:before{background:linear-gradient(90deg,#755131,#dbb784 38%,#85613f 48%,#64432e);box-shadow:5px 7px 9px #53352142}
+  @media(max-width:520px){
+    main{grid-template-rows:minmax(0,1fr);gap:48px;height:570px}
+    .dial p,.season p{font-size:24px;letter-spacing:.035em}
+    .dial .dial-note{font-size:25px}.seasons{font-size:27px}
+    .ring{width:365px;height:365px}.ring>i span{font-size:32px}
+    h2{font-size:38px}.pillar{height:290px}
+  }
 </style>

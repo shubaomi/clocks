@@ -3,6 +3,7 @@
   import SpatialExhibit from "./SpatialExhibit.svelte";
   import {
     advanceDaySecond,
+    createClockTime,
     createClockTimeAtDaySecond,
     formatDaySecond,
   } from "../lib/clock-time.js";
@@ -20,17 +21,26 @@
   let playing = $state(false);
   let playbackStarted = $state(false);
   let playbackDuration = $state(60);
+  let minuteOrigin = $state(0);
+  let minuteStartTimestamp = $state(0);
+  let minuteLoop = $derived(clock.playbackCycle === "minute");
+  let cycleLabel = $derived(minuteLoop ? "一分钟" : "一天");
   let focusMode = $state(false);
   let exhibitColumn = $state();
   let journal = $derived(getClockNeighbors(clock.slug));
+  let localMidnight = $derived(new Date(time.year, time.month - 1, time.day).getTime());
   let timelineSecond = $derived(
     exploring
-      ? selectedSecond
+      ? (minuteLoop ? Math.floor(selectedSecond) : selectedSecond)
       : Math.min(86400, Math.floor(time.progress.day * 86400)),
   );
-  let displayTime = $derived(
-    exploring ? createClockTimeAtDaySecond(time, selectedSecond) : time,
-  );
+  let displayTime = $derived.by(() => {
+    if (!exploring) return time;
+    if (minuteLoop && playbackStarted) {
+      return createClockTime(new Date(minuteStartTimestamp + (selectedSecond - minuteOrigin) * 1000));
+    }
+    return createClockTimeAtDaySecond(localMidnight, selectedSecond);
+  });
 
   const chooseTime = (second) => {
     playing = false;
@@ -51,7 +61,15 @@
       return;
     }
 
-    if (!playbackStarted) selectedSecond = 0;
+    if (!playbackStarted) {
+      if (minuteLoop) {
+        minuteOrigin = displayTime.hour * 3600 + displayTime.minute * 60;
+        minuteStartTimestamp = displayTime.timestamp - displayTime.second * 1000 - displayTime.millisecond;
+        selectedSecond = minuteOrigin;
+      } else {
+        selectedSecond = 0;
+      }
+    }
     exploring = true;
     playbackStarted = true;
     playing = true;
@@ -91,14 +109,27 @@
     let previous = performance.now();
     const advance = (now) => {
       if (now - previous >= 50) {
-        selectedSecond = advanceDaySecond(selectedSecond, now - previous, duration);
+        const elapsed = now - previous;
+        selectedSecond = minuteLoop
+          ? minuteOrigin + ((selectedSecond - minuteOrigin + elapsed * 60 / (duration * 1000)) % 60)
+          : advanceDaySecond(selectedSecond, elapsed, duration);
         previous = now;
       }
       frame = requestAnimationFrame(advance);
     };
 
-    frame = requestAnimationFrame(advance);
-    return () => cancelAnimationFrame(frame);
+    const syncVisibility = () => {
+      cancelAnimationFrame(frame);
+      if (document.hidden) return;
+      previous = performance.now();
+      frame = requestAnimationFrame(advance);
+    };
+    syncVisibility();
+    document.addEventListener("visibilitychange", syncVisibility);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("visibilitychange", syncVisibility);
+    };
   });
 
   $effect(() => {
@@ -186,7 +217,7 @@
     >
       <div class="detail-stage">
         <div class="stage-label stage-label-top" aria-hidden="true">
-          <span>{playing ? "AUTO DAY LOOP" : exploring ? "TIME EXPLORATION" : "LIVE EXHIBIT"}</span>
+          <span>{playing ? (minuteLoop ? "AUTO MINUTE LOOP" : "AUTO DAY LOOP") : exploring ? "TIME EXPLORATION" : "LIVE EXHIBIT"}</span>
           <span>{formatDaySecond(timelineSecond)}</span>
         </div>
 
@@ -200,13 +231,13 @@
 
         <div class="detail-frame" style={`aspect-ratio:${clock.canvas.width}/${clock.canvas.height}`}>
           <SpatialExhibit enabled={spatialEnabled}>
-            <ClockRenderer slug={clock.slug} time={displayTime} fit />
+            <ClockRenderer slug={clock.slug} time={displayTime} {spatialEnabled} dayDuration={playbackStarted ? playbackDuration : 86400} fit />
           </SpatialExhibit>
         </div>
 
         <div class="stage-label stage-label-bottom" aria-hidden="true">
           <span>TIME IN CULTURAL FORMS</span>
-          <span>{playing ? "LOOPING 00—24" : exploring ? "SELECTED TIME" : "LOCAL TIME"}</span>
+          <span>{playing ? (minuteLoop ? "MINUTE CYCLE" : "LOOPING 00—24") : exploring ? "SELECTED TIME" : "LOCAL TIME"}</span>
         </div>
       </div>
 
@@ -228,7 +259,7 @@
           </button>
         </div>
 
-        <label for="time-of-day">拖动观察，或让时间从 00:00 自动行至 24:00</label>
+        <label for="time-of-day">{minuteLoop ? "拖动选择时刻，或播放这一分钟的五行交替" : "拖动观察，或让时间从 00:00 自动行至 24:00"}</label>
         <input
           id="time-of-day"
           type="range"
@@ -256,17 +287,17 @@
             onclick={togglePlayback}
           >
             <span aria-hidden="true">{playing ? "Ⅱ" : "▶"}</span>
-            {playing ? "暂停巡时" : playbackStarted ? "继续巡时" : "从 00:00 自动巡时"}
+            {playing ? "暂停巡时" : playbackStarted ? "继续巡时" : minuteLoop ? "播放这一分钟" : "从 00:00 自动巡时"}
           </button>
           <div class="speed-selector" aria-label="自动巡时速度">
-            <span>24 小时用时</span>
+            <span>{minuteLoop ? "1 分钟用时" : "24 小时用时"}</span>
             {#each playbackSpeeds as speed}
               <button
                 type="button"
                 class:active={playbackDuration === speed.duration}
                 aria-pressed={playbackDuration === speed.duration}
-                aria-label={`${speed.label}速，完整一天用 ${speed.detail}`}
-                title={`完整一天用 ${speed.detail}`}
+                aria-label={`${speed.label}速，完整${cycleLabel}用 ${speed.detail}`}
+                title={`完整${cycleLabel}用 ${speed.detail}`}
                 onclick={() => playbackDuration = speed.duration}
               >{speed.label}<small>{speed.detail}</small></button>
             {/each}
@@ -1027,11 +1058,24 @@
     }
 
     .stage-label-top {
-      top: 26px;
+      top: 12px;
     }
 
     .stage-label-bottom {
-      bottom: 26px;
+      bottom: 12px;
+    }
+
+    .stage-focus {
+      top: 4px;
+      min-height: 28px;
+      padding-inline: 6px;
+    }
+
+    .stage-label-top > span:first-child {
+      max-width: calc(50% - 46px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .time-explorer {

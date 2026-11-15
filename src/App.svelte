@@ -28,20 +28,31 @@
     const frameInterval = activeClock ? 32 : 200;
 
     const tick = (timestamp) => {
-      if (!document.hidden && timestamp - previous >= frameInterval) {
+      if (timestamp - previous >= frameInterval) {
         time = createClockTime();
         previous = timestamp;
       }
       frame = requestAnimationFrame(tick);
     };
 
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    const syncVisibility = () => {
+      cancelAnimationFrame(frame);
+      if (document.hidden) return;
+      time = createClockTime();
+      previous = performance.now();
+      frame = requestAnimationFrame(tick);
+    };
+    document.addEventListener("visibilitychange", syncVisibility);
+    syncVisibility();
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("visibilitychange", syncVisibility);
+    };
   });
 </script>
 
 <svelte:head>
-  <title>{activeClock ? `${activeClock.titleZh} — 时间造物集` : "时间造物集 — 十二种时间形状"}</title>
+  <title>{activeClock ? `${activeClock.titleZh} — 时间造物集` : "时间造物集 — 十三种时间形状"}</title>
   <meta
     name="description"
     content={activeClock
@@ -56,7 +67,7 @@
 {#if activeClock}
   <ClockDetail clock={activeClock} {time} {spatialEnabled} />
 {:else if isHome}
-  <GalleryPage {time} />
+  <GalleryPage {time} {spatialEnabled} />
 {:else}
   <NotFound />
 {/if}

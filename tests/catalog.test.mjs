@@ -16,7 +16,7 @@ test("catalog slugs and routes are unique and stable", () => {
 });
 
 test("every catalog item carries the detail-page presentation fields", () => {
-  assert.equal(clocks.length, 12);
+  assert.equal(clocks.length, 13);
   for (const clock of clocks) {
     assert.ok(clock.titleZh);
     assert.ok(clock.titleEn);

@@ -1,7 +1,31 @@
 <script>
   import { getZodiacState } from "../../lib/time-periods.js";
 
-  let { time } = $props();
+  let { time, motion = true } = $props();
+
+  // Reuse the same press for each change of watch. Scrubbing cancels the
+  // preceding stroke; staying in one watch leaves the paper undisturbed.
+  function setSeal(node, initialIndex) {
+    let lastIndex = initialIndex;
+    let stroke;
+    return {
+      update(index) {
+        if (index === lastIndex) return;
+        stroke?.cancel();
+        if (lastIndex !== null && index !== null && node.animate) {
+          stroke = node.animate([
+            { opacity: 0, transform: "perspective(650px) translate3d(-12px,-30px,80px) rotateX(12deg) rotate(-5deg)" },
+            { opacity: .97, offset: .22 },
+            { opacity: 1, transform: "perspective(650px) translateZ(0) rotate(0)", offset: .49 },
+            { opacity: .91, transform: "perspective(650px) translateZ(0) rotate(0)", offset: .62 },
+            { opacity: 0, transform: "perspective(650px) translate3d(5px,-16px,45px) rotateX(-6deg)" },
+          ], { duration: 560, easing: "cubic-bezier(.32,.06,.28,1)" });
+        }
+        lastIndex = index;
+      },
+      destroy() { stroke?.cancel(); },
+    };
+  }
 
   const zodiac = [
     { branch: "子", animal: "鼠", pinyin: "SHǓ", english: "RAT", range: "23:00—01:00", short: "23—01" },
@@ -59,6 +83,7 @@
 
 <div
   class="clock"
+  class:still={!motion}
   style={styleVars}
   role="img"
   aria-label={`当前生肖 ${current.animal}，${current.pinyin}, ${current.english}；${current.branch}时；现代时间 ${current.range}；一个生肖对应两个小时；当前 ${time.hh}:${time.mm}:${time.ss}`}
@@ -89,7 +114,10 @@
 
       <div class="current-seal">
         <span class="branch-tag">{current.branch}时</span>
-        <span class="main-animal" data-animal={current.animal}>{current.animal}</span>
+        <div class="impression">
+          <span class="main-animal" data-animal={current.animal}>{current.animal}</span>
+          <span class="press" aria-hidden="true" use:setSeal={motion ? state.index : null}>{current.animal}</span>
+        </div>
         <span class="animal-name">{current.pinyin} · {current.english}</span>
       </div>
 
@@ -419,21 +447,19 @@
   }
 
   .branch-tag {
-    position: absolute;
-    top: 11%;
-    right: 0;
+    align-self: flex-end;
+    margin: 0 3% 8px 0;
     padding: 3px 4px;
     border: 1px solid color-mix(in srgb, var(--cinnabar) 55%, transparent);
     font-family: "Songti SC", "STSong", "SimSun", serif;
     font-size: clamp(13px, 2.4cqw, 17px);
-    writing-mode: vertical-rl;
   }
 
   .main-animal {
     position: relative;
     display: inline-block;
     isolation: isolate;
-    color: color-mix(in srgb, var(--cinnabar-dark) 22%, var(--paper-light));
+    color: color-mix(in srgb, var(--cinnabar-dark) 48%, var(--paper-light));
     font-family: "Kaiti SC", "STKaiti", "KaiTi", serif;
     font-size: clamp(82px, 22cqw, 154px);
     font-weight: 600;
@@ -442,6 +468,38 @@
     paint-order: stroke fill;
     text-shadow: 1px 1px 0 color-mix(in srgb, var(--paper-light) 44%, transparent);
   }
+
+  .impression {
+    position: relative;
+    display: grid;
+    width: min(91%, 186px);
+    aspect-ratio: 1;
+    place-items: center;
+    border: 2px solid color-mix(in srgb, var(--cinnabar) 72%, var(--paper));
+    outline: 1px solid color-mix(in srgb, var(--cinnabar) 55%, transparent);
+    outline-offset: -7px;
+    background:
+      repeating-linear-gradient(97deg, transparent 0 6px, #74402608 7px 8px),
+      linear-gradient(125deg, #8b3e2321, transparent 42%, #fff3d369);
+    box-shadow: inset 1px 2px 4px #652e2229;
+  }
+  .press {
+    position: absolute;
+    z-index: 3;
+    inset: -2px;
+    display: grid;
+    place-items: center;
+    border: 3px solid #833629;
+    border-radius: 2px;
+    color: #f7e4bd;
+    background: repeating-linear-gradient(105deg, transparent 0 5px, #56231827 6px 7px), #953e30;
+    box-shadow: inset 0 0 0 4px #d79268, 3px 5px #64291f, 9px 15px 12px #62311f54;
+    opacity: 0;
+    pointer-events: none;
+    font: 600 clamp(82px, 22cqw, 150px)/1 "Kaiti SC", "STKaiti", "KaiTi", serif;
+  }
+  .clock.still, .still .seal-card, .still .seal-card::after,
+  .still .completion-stamp, .still .main-animal::before, .still .main-animal::after {transition: none}
 
   .main-animal::before {
     position: absolute;
@@ -923,7 +981,6 @@
     .progress-row { font-size: 25px; }
     .current-index { top: 42px; right: 10px; font-size: 28px; }
     .current-index small { font-size: 0.9em; }
-    .branch-tag { top: 19%; }
     .atlas-head strong { font-size: 31px; }
     .completion-stamp { font-size: 25px; }
     .seal-meta strong,
@@ -933,6 +990,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .press { display: none; }
     .clock,
     .seal-card,
     .seal-card::after,

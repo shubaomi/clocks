@@ -1,7 +1,8 @@
 <script>
   import { getDoubleHourState } from "../../lib/time-periods.js";
+  import { fly } from "svelte/transition";
 
-  let { time } = $props();
+  let { time, motion = true } = $props();
 
   const periods = [
     { branch: "子", pinyin: "ZǏ", english: "MIDNIGHT", name: "夜半", range: "23:00—01:00", copy: "长夜正深，日期在此交界" },
@@ -64,6 +65,7 @@
 
 <div
   class="clock"
+  class:still={!motion}
   style={styleVars}
   role="img"
   aria-label={`${current.name}，${current.branch}时；${current.pinyin}, ${current.english}；现代时间 ${current.range}；当前 ${time.hh}:${time.mm}:${time.ss}`}
@@ -96,7 +98,14 @@
       </div>
 
       <div class="period-heading">
-        <div class="glyph">{current.branch}</div>
+        <div class="inscription">
+          {#key current.branch}
+            <div class="glyph"
+              in:fly={{ x: 11, y: 8, duration: motion ? 310 : 0 }}
+              out:fly={{ x: -9, y: -5, duration: motion ? 150 : 0 }}
+            >{current.branch}</div>
+          {/key}
+        </div>
         <div class="period-copy">
           <span class="traditional-name">{current.name}</span>
           <span class="branch-name">{current.branch}{state.half} · {current.pinyin} · {current.english}</span>
@@ -122,6 +131,7 @@
     <aside class="clepsydra" aria-label="十二时辰刻度">
       <div class="scale-title">一日 · 十二辰</div>
       <div class="channel">
+        <div class="scale-bed" aria-hidden="true"></div>
         <div class="water"></div>
         <div class="surface"></div>
 
@@ -358,6 +368,7 @@
     width: min(100%, 370px);
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
     padding-bottom: clamp(8px, 2cqw, 16px);
     border-bottom: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
     font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
@@ -377,8 +388,12 @@
     font-size: clamp(76px, 28cqw, 220px);
     font-weight: 500;
     line-height: 0.72;
-    text-shadow: 0 0 38px color-mix(in srgb, var(--accent) 26%, transparent);
+    grid-area: 1 / 1;
+    text-shadow: 0 1px var(--accent), 1px 3px color-mix(in srgb, var(--muted) 65%, black),
+      3px 6px #0b0c1080, 6px 10px 12px #0a0b0e65;
   }
+
+  .inscription {display: grid; isolation: isolate}
 
   .period-copy {
     display: flex;
@@ -400,7 +415,7 @@
     color: color-mix(in srgb, var(--muted) 75%, white);
     font-size: clamp(15px, 3.1cqw, 22px);
     letter-spacing: 0.08em;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
   }
 
   .descriptor {
@@ -493,6 +508,32 @@
     box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 66%, transparent);
   }
 
+  .scale-bed {
+    position: absolute;
+    inset: -2px auto -2px -10px;
+    width: 16px;
+    border-right: 1px solid color-mix(in srgb, var(--accent) 29%, transparent);
+    border-left: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
+    background:
+      repeating-linear-gradient(0deg, transparent 0 calc(2.0833% - 1px), #ccbfa533 2.0833%),
+      linear-gradient(90deg, #090b10aa, #23232988 56%, #e9d4ba36 81%, #13131899);
+    box-shadow: 3px 4px 7px #0004;
+  }
+
+  .surface::before {
+    position: absolute;
+    top: -4px;
+    left: -25px;
+    width: 17px;
+    height: 14px;
+    background: linear-gradient(160deg, #fffcf3, var(--accent) 55%, var(--muted) 58%);
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+    content: "";
+  }
+
+  .clock.still {transition: none}
+  .still .surface::after {display: none}
+
   .surface {
     position: absolute;
     z-index: 3;
@@ -527,7 +568,7 @@
     width: 100%;
     align-items: center;
     gap: clamp(4px, 1.1cqw, 9px);
-    color: color-mix(in srgb, var(--muted) 60%, transparent);
+    color: color-mix(in srgb, var(--muted) 75%, #d4ccbf);
     transform: translateY(-50%);
   }
 
@@ -601,13 +642,16 @@
   @media (max-width: 520px) {
     .title strong { font-size: 34px; }
     .title span { display: none; }
-    .time-rule { font-size: 28px; letter-spacing: 0.02em; }
+    .time-rule { font-size: 24px; letter-spacing: 0.025em; line-height: 1.2; white-space: normal; }
+    .digital { flex: none; }
     .digital { font-size: 42px; }
     .digital small { font-size: 0.82em; }
     .index-line,
     .progress-label,
     .next-period span,
     .scale-title { font-size: 32px; }
+    .index-line { font-size: 25px; }
+    .index-line span { white-space: nowrap; }
     .footer { font-size: 30px; }
     .branch-name { font-size: 30px; letter-spacing: 0; }
     .descriptor { font-size: 32px; }

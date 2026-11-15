@@ -1,15 +1,45 @@
 <script>
   import { getClock } from "../lib/catalog.js";
+  import { onMount } from "svelte";
 
-  let { slug, time, fit = false } = $props();
+  let { slug, time, fit = false, spatialEnabled = true, dayDuration = 86400 } = $props();
 
   const clockModules = import.meta.glob("../clocks/*/Clock.svelte");
   let Component = $state();
   let failed = $state(false);
 
-  let host;
+  let host = $state();
+  let reducedMotion = $state(false);
+  let parkedTime = $state.raw(null);
+  let renderedTime = $derived(parkedTime ?? time);
+  let motion = $derived(spatialEnabled && !reducedMotion && !parkedTime);
   let scale = $state(1);
   let canvas = $derived(getClock(slug)?.canvas ?? { width: 800, height: 800 });
+
+  onMount(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncMotion = () => { reducedMotion = preference.matches; };
+    let inView = true;
+    const syncVisibility = () => {
+      parkedTime = inView && !document.hidden ? null : parkedTime ?? time;
+    };
+    const observer = typeof IntersectionObserver !== "undefined"
+      ? new IntersectionObserver(([entry]) => {
+          inView = entry.isIntersecting;
+          syncVisibility();
+        })
+      : null;
+    syncMotion();
+    syncVisibility();
+    observer?.observe(host);
+    preference.addEventListener("change", syncMotion);
+    document.addEventListener("visibilitychange", syncVisibility);
+    return () => {
+      observer?.disconnect();
+      preference.removeEventListener("change", syncMotion);
+      document.removeEventListener("visibilitychange", syncVisibility);
+    };
+  });
 
   $effect(() => {
     const loader = clockModules[`../clocks/${slug}/Clock.svelte`];
@@ -44,7 +74,7 @@
   });
 </script>
 
-<div class:fit class="clock-renderer" bind:this={host}>
+<div class:fit class="clock-renderer" data-motion={motion ? "on" : "off"} bind:this={host}>
   {#if Component}
     {#if fit}
       <div
@@ -53,10 +83,10 @@
         style:height={`${canvas.height}px`}
         style:transform={`translate(-50%, -50%) scale(${scale})`}
       >
-        <Component {time} />
+        <Component time={renderedTime} {motion} {dayDuration} />
       </div>
     {:else}
-      <Component {time} />
+      <Component time={renderedTime} {motion} {dayDuration} />
     {/if}
   {:else if failed}
     <p class="state">这座时钟暂时无法打开</p>

@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import ClockRenderer from "./ClockRenderer.svelte";
 
-  let { clock, time } = $props();
+  let { clock, time, spatialEnabled } = $props();
   let host;
   let visible = $state(false);
 
@@ -22,8 +22,8 @@
   });
 </script>
 
-<div class="preview" bind:this={host} style={`aspect-ratio:${clock.canvas.width}/${clock.canvas.height}`}>
-  {#if visible}<ClockRenderer slug={clock.slug} {time} fit />{:else}<span>等待入场 · {clock.number}</span>{/if}
+<div class="preview" inert bind:this={host} style={`aspect-ratio:${clock.canvas.width}/${clock.canvas.height}`}>
+  {#if visible}<ClockRenderer slug={clock.slug} {time} {spatialEnabled} fit />{:else}<span>等待入场 · {clock.number}</span>{/if}
 </div>
 
 <style>

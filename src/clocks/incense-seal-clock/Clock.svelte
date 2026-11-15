@@ -1,20 +1,101 @@
 <script>
   import { getIncenseState } from "../../lib/time-systems.js";
-  let { time } = $props();
+
+  let { time, motion = true, dayDuration = 86400 } = $props();
+  const id = $props.id();
+  const points = [[130,130], [470,130], [470,200], [190,200], [190,270], [470,270],
+    [470,340], [130,340], [130,410], [470,410], [470,480], [130,480]];
+  const lengths = points.slice(1).map(([x,y], i) => Math.hypot(x-points[i][0], y-points[i][1]));
+  const total = lengths.reduce((sum, length) => sum + length, 0);
+
+  function station(progress) {
+    let remaining = Math.max(0, Math.min(progress, 1)) * total;
+    for (let i = 0; i < lengths.length; i++) {
+      if (remaining <= lengths[i] || i === lengths.length - 1) {
+        const u = remaining / lengths[i];
+        const [x, y] = points[i];
+        return { i, point: [x + (points[i+1][0]-x)*u, y + (points[i+1][1]-y)*u] };
+      }
+      remaining -= lengths[i];
+    }
+  }
+  const path = (vertices) => "M" + vertices.map(([x,y]) => x.toFixed(2) + " " + y.toFixed(2)).join(" L");
+  // Project the track and its smoke sources through the same oblique view.
+  const project = ([x,y]) => [x - .21*y + 78, .12*x + .76*y + 48];
+  function plume(progress, seconds, depth) {
+    const left = [], right = [];
+    for (let i=0; i<=18; i++) {
+      const height = i/18;
+      const age = height * 2.8;
+      const [ox,oy] = project(station(progress - age/dayDuration).point);
+      const wave = Math.sin(seconds*1.65 - height*8 + depth*.8);
+      const twist = Math.cos(seconds*1.23 - height*10 + depth);
+      const x = ox + height*(15 + depth*7 + 27*wave) + height*height*13*twist;
+      const y = oy - 5 - height*(115 + 18*depth) + height*5*twist;
+      const width = .6 + Math.sin(Math.PI*height)*((4 + 6*height) * (.3 + .7*Math.abs(twist)));
+      left.push([x-width, y]);
+      right.push([x+width, y]);
+    }
+    return path([...left, ...right.reverse()]) + " Z";
+  }
+
   let state = $derived(getIncenseState(time));
-  let offset = $derived(100 - state.ember);
+  let tip = $derived(station(state.progress));
+  let ash = $derived(path([...points.slice(0, tip.i + 1), tip.point]));
+  let fresh = $derived(path([tip.point, ...points.slice(tip.i + 1)]));
+  let seconds = $derived(state.progress * dayDuration);
+  let spark = $derived(project(tip.point));
 </script>
 
 <div class="clock" aria-label={`现在是 ${time.hh}:${time.mm}:${time.ss}，香篆已燃 ${Math.round(state.progress*100)}%`}>
   <header><div><b>香篆流时</b><span>INCENSE SEAL CLOCK</span></div><time>{time.hh}:{time.mm}<small>{time.ss}</small></time></header>
   <main>
-    <svg viewBox="0 0 600 600" role="img" aria-label="由灰烬、余火和未燃香粉组成的香篆路径">
-      <path class="tray" d="M80 70h440v460H80z"/>
-      <path class="incense" pathLength="100" d="M130 130h340v70H190v70h280v70H130v70h340v70H130"/>
-      <path class="ash" pathLength="100" style={`stroke-dasharray:${state.ember} 100`} d="M130 130h340v70H190v70h280v70H130v70h340v70H130"/>
-      <path class="ember" pathLength="100" style={`stroke-dashoffset:${offset}`} d="M130 130h340v70H190v70h280v70H130v70h340v70H130"/>
+    <svg viewBox="0 0 612 595" role="img" aria-label="由灰烬、余火和未燃香粉组成的香篆路径">
+      <defs>
+        <linearGradient id={id+"-bed"} x2=".9" y2="1" gradientUnits="objectBoundingBox">
+          <stop stop-color="#ab957a"/><stop offset=".52" stop-color="#c7b394"/><stop offset="1" stop-color="#ad9375"/>
+        </linearGradient>
+        <linearGradient id={id+"-wall"} x2="0" y2="1">
+          <stop stop-color="#bb8b58"/><stop offset=".32" stop-color="#684b37"/><stop offset=".56" stop-color="#916949"/><stop offset="1" stop-color="#46352a"/>
+        </linearGradient>
+        <pattern id={id+"-grain"} width="13" height="11" patternUnits="userSpaceOnUse">
+          <path d="M1 2l2 -1m5 5l2 1m-6 2l1 -1" fill="none" stroke="#3b211b" stroke-opacity=".24"/>
+          <path d="M6 2l1 1m3 5l2 -.5" fill="none" stroke="#ffecc6" stroke-opacity=".55"/>
+        </pattern>
+        <radialGradient id={id+"-heat"}><stop stop-color="#fff0ac"/><stop offset=".32" stop-color="#ffac48"/><stop offset=".6" stop-color="#cd4d28"/><stop offset="1" stop-color="#833824" stop-opacity="0"/></radialGradient>
+      </defs>
+      <g transform="matrix(1 .12 -.21 .76 78 48)">
+        <rect x="68" y="94" width="464" height="457" rx="20" fill="#4e382c" opacity=".25" transform="translate(6 10)"/>
+        <rect x="66" y="87" width="468" height="460" rx="16" fill={'url(#'+id+'-wall)'}/>
+        <rect x="66" y="66" width="468" height="466" rx="16" fill="#aa835d" stroke="#573e2f" stroke-width="4"/>
+        <rect x="74" y="74" width="452" height="450" rx="12" fill="#654c37" stroke="#efd1a3" stroke-width="2.5"/>
+        <rect x="83" y="87" width="434" height="427" rx="9" fill={'url(#'+id+'-bed)'}/>
+        <rect x="83" y="87" width="434" height="427" rx="9" fill={'url(#'+id+'-grain)'} opacity=".36"/>
+        <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+          {#if state.progress > 0}
+            <path d={ash} stroke="#867663" stroke-width="19" transform="translate(0 2)"/>
+            <path d={ash} stroke="#c9beb0" stroke-width="17"/>
+            <path d={ash} stroke={'url(#'+id+'-grain)'} stroke-width="17"/>
+          {/if}
+          <path d={fresh} stroke="#7a604e" stroke-width="25" transform="translate(2 5)"/>
+          <path d={fresh} stroke="#704734" stroke-width="23"/>
+          <path d={fresh} stroke="#986549" stroke-width="18" transform="translate(0 -3)"/>
+          <path d={fresh} stroke="#b88763" stroke-width="9" transform="translate(-1 -6)"/>
+          <path d={fresh} stroke={'url(#'+id+'-grain)'} stroke-width="20" transform="translate(0 -3)"/>
+        </g>
+      </g>
+      <g transform={`translate(${spark[0]} ${spark[1]-4})`}>
+        <ellipse rx={motion ? 17+2*Math.sin(seconds*4.3) : 17} ry="13" fill={'url(#'+id+'-heat)'}/>
+        <ellipse rx="4" ry="2.8" fill="#ffe5a3"/>
+      </g>
+      {#if motion}
+        <g aria-hidden="true" class="plume">
+          <path d={plume(state.progress,seconds,0)} fill="#534638" opacity=".25"/>
+          <path d={plume(state.progress,seconds,.45)} fill="#fff3dc" opacity=".68"/>
+          <path d={plume(state.progress,seconds,1)} fill="#eee4d7" opacity=".42"/>
+        </g>
+      {/if}
     </svg>
-    <div class="smoke" style={`left:${18 + (state.segment%20)*3.3}%;top:${20+Math.floor(state.segment/20)*11}%`}><i></i><i></i><i></i><b class="spark" style={`transform:translate(${time.second%5*2}px,${-time.progress.second*14}px);opacity:${1-time.progress.second}`}></b></div>
     <div class="reading"><strong>{Math.round(state.progress*100)}%</strong><span>香路已行 · PATH BURNED</span></div>
   </main>
   <section class="legend"><span><i class="past"></i>灰 · PAST</span><span><i class="now"></i>烬 · NOW</span><span><i class="next"></i>香 · NEXT</span></section>
@@ -22,8 +103,18 @@
 </div>
 
 <style>
-  .clock{position:relative;width:960px;height:960px;overflow:hidden;padding:50px;color:#4a2c25;background:radial-gradient(circle at 65% 30%,#ecd6bd,#ceb096 65%,#a97a63);font-family:"Songti SC","STSong",serif}.clock:before{position:absolute;inset:0;content:"";opacity:.18;background:radial-gradient(circle,#53372a 0 1px,transparent 1.6px);background-size:18px 17px}header,main,.legend,footer{position:relative;z-index:1}header{display:flex;justify-content:space-between;border-bottom:1px solid #5e392b55;padding-bottom:21px}header div{display:grid;gap:5px}header b{font-size:36px;font-weight:500;letter-spacing:.16em}header span,time,.legend,footer,.reading span{font-family:monospace;letter-spacing:.12em}header span{font-size:10px;color:#79584b}time{font-size:31px}time small{color:#a92f27;font-size:10px;vertical-align:top;margin-left:6px}main{position:relative;width:680px;height:680px;margin:20px auto 0}svg{width:100%;height:100%;filter:drop-shadow(0 22px 24px #57342533)}path{fill:none;stroke-linecap:round;stroke-linejoin:round}.tray{fill:#d7bca3aa;stroke:#76503d;stroke-width:4}.incense{stroke:#66392c;stroke-width:25}.ash{stroke:#a9a094;stroke-width:27}.ember{stroke:#d9462e;stroke-width:36;stroke-dasharray:1 99;filter:drop-shadow(0 0 12px #ef4c31)}.reading{position:absolute;z-index:2;right:30px;bottom:10px;display:flex;align-items:baseline;gap:14px;padding:9px 13px;border:1px solid #76503d55;background:#d7b99ff2;box-shadow:0 8px 20px #57342526;text-align:right}.reading strong{font:700 38px/1 monospace}.reading span{font-size:18px;line-height:1.25}.smoke{position:absolute}.smoke i{position:absolute;width:18px;height:70px;border-left:3px solid #f2e5db88;border-radius:50%;animation:smoke 4s ease-in-out infinite}.smoke i:nth-child(2){animation-delay:-1.3s;transform:translateX(12px)}.smoke i:nth-child(3){animation-delay:-2.4s;transform:translateX(-10px)}
-  .spark{position:absolute;width:5px;height:5px;border-radius:50%;background:#e64d31;box-shadow:0 0 9px #ff6a42}.legend{display:flex;justify-content:center;gap:44px;color:#6f4d40;font-size:9px}.legend span{display:flex;align-items:center;gap:8px}.legend i{width:20px;height:4px;background:#aaa}.legend .past{background:#a9a094}.legend .now{background:#d9462e;box-shadow:0 0 8px #d9462e}.legend .next{background:#66392c}footer{position:absolute;right:50px;bottom:40px;left:50px;display:flex;justify-content:space-between;border-top:1px solid #5e392b55;padding-top:19px;color:#79584b;font-size:8px}footer b{color:#4d3027}@keyframes smoke{0%{opacity:0;transform:translateY(0) scale(.7)}35%{opacity:.7}100%{opacity:0;transform:translate(14px,-90px) scale(1.3)}}@media(prefers-reduced-motion:reduce){.smoke i{animation:none}}
-  header span{font-size:19px}time{font-size:42px}time small{font-size:19px}.reading span{font-size:18px}.legend{font-size:18px}footer{font-size:18px}
-  @media(max-width:520px){header b{font-size:50px}header span{display:none}time{font-size:58px}time small{font-size:40px}.reading{right:18px;bottom:8px;gap:10px;padding:8px 10px}.reading strong{font-size:58px}.reading span{font-size:34px}.legend{font-size:36px}footer{display:none}}
+  .clock{position:relative;width:960px;height:960px;overflow:hidden;padding:50px;color:#4a2c25;background:radial-gradient(ellipse at 58% 26%,#ecdccb,#cbb099 68%,#b18a72);font-family:"Songti SC","STSong",serif}
+  header{display:flex;justify-content:space-between;border-bottom:1px solid #5e392b55;padding-bottom:21px}
+  header div{display:grid;gap:5px}header b{font-size:36px;font-weight:500;letter-spacing:.16em}
+  header span,time,.legend,footer,.reading span{font-family:monospace;letter-spacing:.1em}
+  header span,.legend,footer{font-size:19px;color:#664638}time{font-size:42px}time small{color:#963a28;font-size:19px;vertical-align:top;margin-left:6px}
+  main{position:relative;width:840px;height:674px;margin:15px auto 10px}
+  svg{display:block;width:100%;height:100%;overflow:visible}
+  .reading{position:absolute;right:0;bottom:0;display:flex;align-items:baseline;gap:12px}
+  .reading strong{font:700 38px/1 monospace}.reading span{font-size:18px}
+  .legend{display:flex;justify-content:center;gap:46px}.legend span{display:flex;align-items:center;gap:9px}
+  .legend i{width:24px;height:5px}.past{background:#ddd1be;box-shadow:0 1px 2px #654d3c}.now{background:#d34d29}.next{background:#754f38}
+  footer{position:absolute;right:50px;bottom:40px;left:50px;display:flex;justify-content:space-between;border-top:1px solid #76533f66;padding-top:17px}
+  @media(max-width:520px){header b{font-size:50px}header span{display:none}time{font-size:58px}time small{font-size:40px}.reading strong{font-size:54px}.reading span{font-size:28px}.legend{font-size:34px}footer{display:none}}
+  @media(prefers-reduced-motion:reduce){.plume{display:none}}
 </style>
